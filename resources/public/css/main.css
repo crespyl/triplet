@@ -1,0 +1,35 @@
+
+* {
+  box-sizing: border-box;
+}
+.logos img {
+  width: 100px;
+  margin-left: 5px;
+}
+
+form input#main-input {
+  margin-right: 5px;
+}
+
+.triple {
+  display: inline-block;
+  border: 1px solid black;
+  padding: 2px;
+}
+
+.entity {
+  background: lightgreen;
+  margin: 3px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.predicate {
+  background: lightblue;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+li {
+  margin: 4px;
+}
