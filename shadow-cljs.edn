@@ -15,7 +15,9 @@
 
  :builds {:main {:target :node-script
                  :output-to "resources/main.js"
-                 :main app.main.core/main}
+                 :main app.main.core/main
+                 :devtools {:preloads
+                            [shadow.remote.runtime.cljs.node]}}
 
           :renderer {:target :browser
                      :output-dir "resources/public/js"

@@ -9,6 +9,7 @@
 
 (def TRIPLE-REGEX #"([\w:-]+)\s+([\w:-]+)\s+([\w:-]+)")
 
+
 ;; re-frame init app state
 (rf/reg-event-db :initialize
                  (fn [_ _]
@@ -26,17 +27,14 @@
 
 (rf/reg-event-db :add-statement
                  (fn-traced [db [_ statement]]
-                   (let [])
                    (update-in db [:triple-set] #(conj % statement))))
 
 (rf/reg-event-db :add-entity-name
                  (fn-traced [db [_ entity-name]]
-                   (let [])
                    (update-in db [:entity-names] #(conj % entity-name))))
 
 (rf/reg-event-db :add-relation-name
                  (fn-traced [db [_ relation-name]]
-                   (let [])
                    (update-in db [:relation-names] #(conj % relation-name))))
 
 (rf/reg-event-db :process-input
