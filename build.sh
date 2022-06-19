@@ -35,7 +35,7 @@ licensetool() {
 }
 
 case $1 in
-        dev)
+        dev|debug)
                 yarn run compile
                 package_dev Triplet-Dev
                 ;;
@@ -45,5 +45,8 @@ case $1 in
                 ;;
         licenses)
                 licensetool
+                ;;
+        *)
+                echo "action must be one of [debug|release|licenses]"
                 ;;
 esac

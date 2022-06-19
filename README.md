@@ -23,8 +23,8 @@ to connect to both the main and renderer cljs runtimes simultaneously.  If
 `clojurescript-mode` complains about not finding the right kind of repl from a
 cljs buffer even after you've connected, check that `cider-repl-type` is set to
 `'cljs`, and that the cider configuration is set to use `shadow-cljs`.  The
-project `.dir-locals.el` but if you don't have dir-locals enabled you can look
-in that file to see what needs to happen.
+project `.dir-locals.el` should set that up, but if you don't have dir-locals
+enabled you can look in that file to see what needs to happen.
 
 For some reason, at least in my set up, emacs only prompts to select the runtime
 on the first connection, and any calls to `cider-connect-sibling-cljs` after
