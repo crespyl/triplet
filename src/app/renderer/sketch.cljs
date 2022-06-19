@@ -7,6 +7,14 @@
 
 (def NODE-WIDTH 60)
 
+(defn get-desired-width []
+  (.-offsetWidth (js/document.getElementById "sketch")))
+
+(defn get-desired-height []
+  ;(.-offsetHeight (js/document.getElementById "sketch"))
+  300
+  )
+
 (def ext-state (atom {}))
 (defn update-graph-data! [new-data]
   (swap! ext-state
@@ -40,7 +48,9 @@
         node-text (str "Number of nodes: " (count nodes))
         rel-text  (str "Number of relations: " (count relations))]
 
-    (q/background 255)
+    (q/resize-sketch (get-desired-width) (get-desired-height))
+
+    (q/background 250)
 
     (q/fill 0)
     (q/text node-text 10 10)
@@ -49,7 +59,8 @@
     (doall
         (map-indexed (fn [idx node]
                        (q/push-matrix)
-                       (q/translate (* (+ idx 1) (+ NODE-WIDTH 5)) (/ (q/width) 2))
+                       (q/translate (* (+ idx 1) (+ NODE-WIDTH 5))
+                                    (/ (q/height) 2))
                        (draw-node node)
                        (q/pop-matrix)
                        )
@@ -62,4 +73,4 @@
   :update update-sketch
   :draw draw-sketch
   :host "sketch"
-  :size [300 300])
+  :size [(get-desired-width) (get-desired-height)])
