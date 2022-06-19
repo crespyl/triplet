@@ -27,7 +27,6 @@
 (defn init-re-frame-effects []
   (rf/reg-fx :update-sketch-graph
              (fn [graph]
-               (tap> [:update-sketch-graph-fx graph])
                (sketch/update-graph-data! graph))))
 
 (defn init-re-frame-events []

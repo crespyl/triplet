@@ -36,11 +36,11 @@ licensetool() {
 
 case $1 in
         dev)
-                npm run compile
+                yarn run compile
                 package_dev Triplet-Dev
                 ;;
         release)
-                npm run release
+                yarn run release
                 package_release Triplet
                 ;;
         licenses)

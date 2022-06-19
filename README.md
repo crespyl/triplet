@@ -7,9 +7,9 @@ both the node/main and chrome/renderer processes.
 
 For now, the most reliable way to do this is with three separate commands:
 
-1. `npm run server` - start the shadow-cljs server and nREPL
-2. `npm run watch` - start the shadow-cljs file-watcher and compiler for both the main and renderer builds
-3. `npm run electron` - start the actual electron app in dev mode
+1. `yarn run server` - start the shadow-cljs server and nREPL
+2. `yarn run watch` - start the shadow-cljs file-watcher and compiler for both the main and renderer builds
+3. `yarn run electron` - start the actual electron app in dev mode
 
 If all these start up correctly, you should have the electron window up and
 running in dev mode.

@@ -5,6 +5,8 @@
    [quil.middleware :as m]
    ))
 
+(def NODE-WIDTH 60)
+
 (def ext-state (atom {}))
 (defn update-graph-data! [new-data]
   (swap! ext-state
@@ -22,16 +24,36 @@
       (assoc-in [:graph] (get-in @ext-state [:graph]))
       (update-in [:time] inc)))
 
+(defn draw-node [node]
+  (q/fill 50 200 50)
+  (q/ellipse 0 0 NODE-WIDTH NODE-WIDTH)
+  (q/fill 0)
+  (q/text-align :center :center)
+  (q/text-style :bold)
+  (q/text (str node) 0 0))
+
 (defn draw-sketch [state]
-  (let [color (q/abs (* 255 (q/sin (/ (get-in state [:time]) 50))))
-        node-text (str "Number of nodes: " (count (get-in state [:graph :entity-ids])))
-        rel-text  (str "Number of relations: " (count (get-in state [:graph :relation-ids])))]
+  (let [color (q/abs (* 255 (q/sin (/ (get-in state [:time]) 10))))
+        nodes (get-in state [:graph :entity-ids])
+        relations (get-in state [:graph :relation-ids])
+        triples (get-in state [:graph :triple-set])
+        node-text (str "Number of nodes: " (count nodes))
+        rel-text  (str "Number of relations: " (count relations))]
+
     (q/background 255)
-    (q/fill color 255 (- 255 color))
-    (q/ellipse (/ (q/width) 2) (/ (q/height) 2) 55 55)
+
     (q/fill 0)
     (q/text node-text 10 10)
-    (q/text rel-text 10 20)))
+    (q/text rel-text 10 20)
+
+    (doall
+        (map-indexed (fn [idx node]
+                       (q/push-matrix)
+                       (q/translate (* (+ idx 1) (+ NODE-WIDTH 5)) (/ (q/width) 2))
+                       (draw-node node)
+                       (q/pop-matrix)
+                       )
+                     nodes))))
 
 (q/defsketch graph-view
   :features [:no-start]
