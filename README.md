@@ -1,5 +1,11 @@
 # Triplet
 
+A small project integrating Electron, ClojureScript, Re-Frame/Reagent/React,
+and Quil/Processing.
+
+The intent is to allow simple entry of triples, and to render/explore the
+triple set as a graph, visualized with Quil/Processing.
+
 ## Development
 This project uses shadow-cljs with electron, which means if we want full
 editor/debug support for nREPL and friends, we must have a way to connect to
