@@ -33,3 +33,15 @@ form input#main-input {
 li {
   margin: 4px;
 }
+
+.typeahead-list {
+  background: cornsilk;
+}
+
+.typeahead-highlighted {
+  color: green;
+}
+
+.typeahead {
+  display: inline-block;
+}

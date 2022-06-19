@@ -1,3 +1,4 @@
+// set up IPC to main process,
 // thanks to https://stackoverflow.com/a/59814127
 const { contextBridge, ipcRenderer } = require('electron')
 
