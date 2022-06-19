@@ -1,19 +1,19 @@
 (ns app.renderer.core
   (:require
-
-   ;; cljs
    [day8.re-frame.tracing :refer-macros [fn-traced]]
    [reagent.core :as r]
    [reagent.dom :as rd]
    [re-frame.core :as rf]
    [reagent-forms.core :refer [bind-fields]]
-   [dorothy.core :as dot]
-   ))
+   [quil.core :as q]
+
+   [app.renderer.components :as ui]
+
+   [app.renderer.sketch :as sketch]))
 
 (enable-console-print!)
 
 (def TRIPLE-REGEX #"([\w*/:-]+)\s+([\w*/:-]+)\s+([\w*/:-]+)")
-
 
 ;; re-frame init app state
 (rf/reg-event-db :initialize
@@ -21,175 +21,79 @@
                    {:graph {:triple-set   (sorted-set)
                             :entity-ids   (sorted-set)
                             :relation-ids (sorted-set)}
+                    :sketch {}
                     :inputs {}}))
 
-;;;;;;;;;;;;;;;;;;;;;
-;; re-frame event handlers
-(rf/reg-event-db :add-statement
-                 (fn-traced [db [_ statement]]
-                   (update-in db [:graph :triple-set] #(conj % statement))))
+(defn init-re-frame-effects []
+  (rf/reg-fx :update-sketch-graph
+             (fn [graph]
+               (tap> [:update-sketch-graph-fx graph])
+               (sketch/update-graph-data! graph))))
 
-(rf/reg-event-db :add-entity-name
-                 (fn-traced [db [_ entity-name]]
-                   (update-in db [:graph :entity-ids] #(conj % entity-name))))
+(defn init-re-frame-events []
+  "Register event handlers for re-frame"
+  (rf/reg-event-db :add-statement
+                   (fn-traced [db [_ statement]]
+                              (update-in db [:graph :triple-set] #(conj % statement))))
 
-(rf/reg-event-db :add-relation-name
-                 (fn-traced [db [_ relation-name]]
-                   (update-in db [:graph :relation-ids] #(conj % relation-name))))
+  (rf/reg-event-fx :add-entity-name
+                   (fn-traced [cofx [_ ent]]
+                     (let [new-db
+                           (update-in (:db cofx) [:graph :entity-ids] #(conj % ent))]
+                       {:db new-db
+                        :update-sketch-graph (get-in new-db [:graph])})))
 
-(rf/reg-event-db :process-input
-                 (fn-traced [db [_ input]]
-                   (if-let [matches (re-matches TRIPLE-REGEX input)]
-                     (let [[sub pred obj] (rest matches)]
-                       (do
-                         (rf/dispatch [:add-statement [sub pred obj]])
-                         (if-not (contains? (-> db :graph :entity-ids)   sub)  (rf/dispatch [:add-entity-name   sub]))
-                         (if-not (contains? (-> db :graph :relation-ids) pred) (rf/dispatch [:add-relation-name pred]))
-                         (if-not (contains? (-> db :graph :entity-ids)   obj)  (rf/dispatch [:add-entity-name   obj]))
-                         (rf/dispatch [:set-value [:main-input] ""])))
-                     (.log js/console (str "ignoring invalid statement: " input)))))
+  (rf/reg-event-fx :add-relation-name
+                   (fn-traced [cofx [_ rel]]
+                              (let [new-db
+                                    (update-in (:db cofx) [:graph :relation-ids] #(conj % rel))]
+                                {:db new-db
+                                 :update-sketch-graph (get-in new-db [:graph])})))
 
-;; re-frame subscriptions
-(rf/reg-sub :triple-set
-            (fn [db _]
-              (-> db :graph :triple-set)))
+  (rf/reg-event-db :process-input
+                   (fn-traced [db [_ input]]
+                              (if-let [matches (re-matches TRIPLE-REGEX input)]
+                                (let [[sub pred obj] (rest matches)]
+                                  (do
+                                    (rf/dispatch [:add-statement [sub pred obj]])
+                                    (if-not (contains? (-> db :graph :entity-ids)   sub)  (rf/dispatch [:add-entity-name   sub]))
+                                    (if-not (contains? (-> db :graph :relation-ids) pred) (rf/dispatch [:add-relation-name pred]))
+                                    (if-not (contains? (-> db :graph :entity-ids)   obj)  (rf/dispatch [:add-entity-name   obj]))
+                                    (rf/dispatch [:set-value [:main-input] ""])))
+                                (.log js/console (str "ignoring invalid statement: " input)))))
 
-(rf/reg-sub :entity-ids
-            (fn [db _]
-              (-> db :graph :entity-ids)))
+  ;; general purpose setters for use with reagent-forms
+  (rf/reg-event-db :set-value
+                   (fn [db [_ path value]]
+                     (assoc-in db (into [:inputs] path) value)))
 
-(rf/reg-sub :relation-ids
-            (fn [db _]
-              (-> db :graph :relation-ids)))
+  (rf/reg-event-db :update-value
+                   (fn [db [_ f path value]]
+                     (update-in db (into [:inputs] path) f value))))
 
-;; reagent-forms integration hooks
-(rf/reg-sub :inputs
-            (fn [db _]
-              (:inputs db)))
-(rf/reg-sub :value
-            :<- [:inputs]
-            (fn [doc [_ path]]
-              (get-in doc path)))
-(rf/reg-event-db :set-value
-                 (fn [db [_ path value]]
-                   (assoc-in db (into [:inputs] path) value)))
+(defn init-re-frame-subscriptions []
+  "Register subscribtions/queries for re-frame"
+  ;; re-frame subscriptions
+  (rf/reg-sub :triple-set
+              (fn [db _]
+                (-> db :graph :triple-set)))
 
-(rf/reg-event-db :update-value
-                 (fn [db [_ f path value]]
-                   (update-in db (into [:inputs] path) f value)))
-(def reagent-forms-events
-  {:get (fn [path] @(rf/subscribe [:value path]))
-   :save! (fn [path value] (rf/dispatch [:set-value path value]))
-   :update! (fn [path save-fn value]
-              ; save-fn should accept two arguments: old-value, new-value
-              (rf/dispatch [:update-value save-fn path value]))
-   :doc (fn [] @(rf/subscribe [:inputs]))})
+  (rf/reg-sub :entity-ids
+              (fn [db _]
+                (-> db :graph :entity-ids)))
 
-;; reagent-forms events -> re-frame
+  (rf/reg-sub :relation-ids
+              (fn [db _]
+                (-> db :graph :relation-ids)))
 
-;;;;;;;;;;;;;;;;;;;;;
-;; components
-
-(defn ac-source [input]
-  (let [full-list (concat
-                   @(rf/subscribe [:graph :entity-ids])
-                   @(rf/subscribe [:graph :relation-ids]))]
-    (if (= input :all)
-      full-list
-      (filter
-       #(-> % (.toLowerCase %) (.indexOf input) (> -1))
-       (conj full-list input)))))
-
-;; (defn old-test-autocopmlete []
-;;   (let [dataProvider (fn [token]
-;;                        (tap> [:dataProvider token])
-;;                        (clj->js ["foo" "bar" "baz"]))
-;;         loading-component (r/reactify-component ac-loader)
-;;         suggestion-component (r/reactify-component ac-suggestion)
-;;         trigger-parameters {:dataProvider dataProvider
-;;                             :component suggestion-component
-;;                             :output #(str %1)}
-;;         entities (vec @(rf/subscribe [:entity-ids]))
-;;         relations (vec @(rf/subscribe [:relation-ids]))
-;;         triggers (map #(clojure.string/join (take 1 %))
-;;                       (concat entities relations))
-;;         trigger-map (reduce #(conj %1 %2 trigger-parameters) [] triggers)
-;;         dummy (tap> [:triggers triggers])
-;;         dummy (tap> [:trigger-map trigger-map])
-;;         dummy (tap> [:map (apply hash-map trigger-map)])
-;;         ;trigger-map (reduce #(conj %1 %2 trigger-parameters) [] triggers)
-;;         ]
-
-;;     [:div {:style {:width 500}}
-;;      [react-textarea-autocomplete
-;;       {
-;;        :className "my-textarea"
-;;        :textAreaComponent "input"
-;;        :loadingComponent loading-component
-;;        :trigger (apply hash-map trigger-map)
-;;        :onCaretPositionChange #(tap> [:ocpc %])
-;;        }]]))
-
-;; (defn test-autocomplete [id placeholder]
-;;   [bind-fields
-;;    [:div.typeahead {:field             :typeahead
-;;                     :id                id
-;;                     :input-placeholder placeholder
-;;                     :data-source       ac-source
-;;                     :input-class       "form-control"
-;;                     :list-class        "typeahead-list"
-;;                     :item-class        "typeahead-item"
-;;                     :highlight-class   "typeahead-highlighted"
-;;                     :get-index         (constantly 0)}]
-;;    reagent-forms-events])
-
-;; (defn autocomplete-input-form []
-;;   [:form
-;;    [test-autocomplete :form.entity    "entity"]
-;;    [test-autocomplete :form.attribute "attribute"]
-;;    [test-autocomplete :form.value     "value"]])
-
-(defn graph-view []
- [:span "Graph goes here"]
-  )
-
-(defn input-form []
-  (let [gettext (fn [e] (-> e .-target .-elements first .-value))]
-    [bind-fields
-     [:form {:on-submit (fn [e]
-                          (.preventDefault e)
-                          (rf/dispatch [:process-input (gettext e)]))}
-      [:input {:field :text :id :main-input}]
-      [:button {:type :submit}
-       "Parse"]]
-     reagent-forms-events]))
-
-(defn triple [subject predicate object]
-  [:div.triple
-   [:span.entity.subject subject]
-   [:span.predicate    predicate]
-   [:span.entity.object   object]])
-
-(defn triple-log []
-  [:ol#triple-log
-   {:style {:display "inline-block"}}
-   (for [entry @(rf/subscribe [:triple-set])]
-     ^{:key entry}
-     [:li [apply triple entry]])])
-
-(defn entity-ids []
-  [:ul#entity-ids
-   {:style {:display "inline-block"}}
-   (for [entry @(rf/subscribe [:entity-ids])]
-     ^{:key (str "entity-" entry)}
-     [:li.entity entry])])
-
-(defn relation-ids []
-  [:ul#relation-ids
-   {:style {:display "inline-block"}}
-   (for [entry @(rf/subscribe [:relation-ids])]
-     ^{:key (str "relation-" entry)}
-     [:li.predicate entry])])
+  ;; reagent-forms integration hooks
+  (rf/reg-sub :inputs
+              (fn [db _]
+                (:inputs db)))
+  (rf/reg-sub :value
+              :<- [:inputs]
+              (fn [doc [_ path]]
+                (get-in doc path))))
 
 (defn root-component []
   [:div
@@ -197,19 +101,24 @@
     [:img.electron {:src "img/electron-logo.png"}]
     [:img.cljs {:src "img/cljs-logo.svg"}]
     [:img.reagent {:src "img/reagent-logo.png"}]]
-   [:div#graph
-    [graph-view]]
-   [:div#controls [input-form]]
-   ;;[:div#new-controls [autocomplete-input-form]]
-   [triple-log]
-   [entity-ids]
-   [relation-ids]
+   [ui/graph-view "sketch"]
+   [:div#controls [ui/input-form]]
+   [ui/triple-log]
+   [ui/entity-ids]
+   [ui/relation-ids]
    ])
 
 (defonce initialized?
-  (rf/dispatch-sync [:initialize]))
+  (do
+    (rf/dispatch-sync [:initialize])
+    true))
 
 (defn ^:dev/after-load start! []
+  (init-re-frame-effects)
+  (init-re-frame-events)
+  (init-re-frame-subscriptions)
+  (tap> [:after-load])
   (rd/render
    [root-component]
-   (js/document.getElementById "app-container")))
+   (js/document.getElementById "app-container"))
+  (sketch/graph-view))

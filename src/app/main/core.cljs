@@ -1,5 +1,7 @@
 (ns app.main.core
-  (:require ["electron" :refer [app BrowserWindow dialog ipcMain]]))
+  (:require
+   ["electron" :as electron :refer [app BrowserWindow dialog ipcMain]]
+   ))
 
 (def main-window (atom nil))
 

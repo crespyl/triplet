@@ -8,7 +8,7 @@
                 [cider/cider-nrepl "0.28.3"]
                 [refactor-nrepl "3.5.2"]
                 [reagent-forms "0.5.44"]
-                [org.clojars.cemerick/dorothy "0.0.7-cljs"]]
+                [quil "3.1.0"]]
 
  :dev-http {8080 "resources/public/"}
 
