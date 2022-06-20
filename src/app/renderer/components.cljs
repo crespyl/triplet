@@ -37,14 +37,16 @@
                           (.preventDefault e)
                           (rf/dispatch [:process-input (gettext e)]))}
       [:div.row
+       [:label {:for :main-input} "Enter triple:"]
        [:input {:field :text
                 :id :main-input
                 :placeholder "subject predicate object"}]
        [:button {:type :submit}
         "Parse"]]
       [:div.row
+       [:label {:for :layout} "Layout:"]
        [:select {:field :list :id :layout}
-        (for [l [:random :grid :circle :breadthfirst :cose :cola :cose-bilkent]]
+        (for [l [:breadthfirst :random :grid :circle :cose :cose-bilkent]]
           [:option {:key l} (subs (str l) 1)])]
        [:button {:on-click (fn [e]
                              (.preventDefault e)
@@ -60,21 +62,21 @@
    [:span.entity.object   object]])
 
 (defn triple-log []
-  [:ol#triple-log
+  [:ol#triple-log.scroll-list
    {:style {:display "inline-block"}}
    (for [entry @(rf/subscribe [:triple-set])]
-     ^{:key entry}
+     ^{:key (hash entry)}
      [:li [apply triple entry]])])
 
 (defn entity-ids []
-  [:ul#entity-ids
+  [:ul#entity-ids.scroll-list
    {:style {:display "inline-block"}}
    (for [entry @(rf/subscribe [:entity-ids])]
      ^{:key (str "entity-" entry)}
      [:li.entity entry])])
 
 (defn relation-ids []
-  [:ul#relation-ids
+  [:ul#relation-ids.scroll-list
    {:style {:display "inline-block"}}
    (for [entry @(rf/subscribe [:relation-ids])]
      ^{:key (str "relation-" entry)}

@@ -5,6 +5,7 @@
    ["cytoscape-cose-bilkent" :as cose-bilkent]))
 
 (def cy nil)
+(def layout-name "breadthfirst")
 
 (defn graph-to-cytoscape [graph]
   "converts a list of entity ids/names and a set of triples to an object with
@@ -28,30 +29,25 @@
      :edges edges
      }))
 
+(defn relayout
+  ([] (relayout layout-name))
+  ([name] (let [layout-params (clj->js {
+                                       :name name
+                                       :animate true
+                                       :refresh 20
+                                       })]
+            (set! layout-name name)
+            (tap> [:test layout-params])
+            (.run (.layout cy layout-params))
+            )))
+
 (defn update-cytoscape [graph]
   (let [cy-graph (graph-to-cytoscape graph)
         nodes (:nodes cy-graph)
         edges (:edges cy-graph)]
     (.add cy (clj->js nodes))
     (.add cy (clj->js edges))
-    (.run (.layout cy (clj->js {
-                                :name "cola"
-                                :animate true
-                                :refresh 20
-                                }))))
-  )
-
-(defn relayout
-  ([] (relayout "cola"))
-  ([name] (let [layout-params (clj->js {
-                                       :name name
-                                       :animate true
-                                       :refresh 20
-                                       })]
-            (tap> [:test layout-params])
-            (.run (.layout cy layout-params))
-            )))
-
+    (relayout layout-name)))
 
 (defn init-cytoscape [container graph]
   (let [el (js/document.getElementById container)]

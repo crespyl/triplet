@@ -1,6 +1,6 @@
 (ns app.main.core
   (:require
-   ["electron" :as electron :refer [app BrowserWindow dialog ipcMain]]
+   ["electron" :as electron :refer [app BrowserWindow dialog ipcMain session]]
    ))
 
 ;; enable CSP-header
@@ -13,6 +13,8 @@
 ;;                                          ["Content-Security-Policy"]
 ;;                                          ["script-src self unsafe-eval"])
 ;;                                }))))
+
+
 
 (def main-window (atom nil))
 
