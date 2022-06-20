@@ -36,11 +36,21 @@
      [:form {:on-submit (fn [e]
                           (.preventDefault e)
                           (rf/dispatch [:process-input (gettext e)]))}
-      [:input {:field :text
-               :id :main-input
-               :placeholder "subject predicate object"}]
-      [:button {:type :submit}
-       "Parse"]]
+      [:div.row
+       [:input {:field :text
+                :id :main-input
+                :placeholder "subject predicate object"}]
+       [:button {:type :submit}
+        "Parse"]]
+      [:div.row
+       [:select {:field :list :id :layout}
+        (for [l [:random :grid :circle :breadthfirst :cose :cola :cose-bilkent]]
+          [:option {:key l} (subs (str l) 1)])]
+       [:button {:on-click (fn [e]
+                             (.preventDefault e)
+                             (tap> [:relayout-onclick])
+                             (rf/dispatch [:relayout-graph @(rf/subscribe [:selected-layout])]))}
+        "Re-layout"]]]
      reagent-forms-events]))
 
 (defn triple [subject predicate object]

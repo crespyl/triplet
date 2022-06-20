@@ -1,6 +1,6 @@
 {
   "name": "triplet",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "simple graph editor for interactive concept mapping",
   "main": "resources/main.js",
   "scripts": {
@@ -24,6 +24,7 @@
   "dependencies": {
     "cytoscape": "^3.21.1",
     "cytoscape-cola": "^2.5.1",
+    "cytoscape-cose-bilkent": "^4.1.0",
     "highlight.js": "^11.5.1",
     "p5": "^1.4.1",
     "react": "^17.0.2",

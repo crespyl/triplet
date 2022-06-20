@@ -26,15 +26,24 @@
                     :inputs {}}))
 
 (defn init-re-frame-effects []
+  "Register effect handlers for re-frame"
   (rf/reg-fx :update-sketch-graph
              (fn [graph]
                (sketch/update-graph-data! graph)))
   (rf/reg-fx :update-cytoscape-graph
              (fn [graph]
-               (cy/update-cytoscape graph))))
+               (cy/update-cytoscape graph)))
+  (rf/reg-fx :relayout-cytoscape-graph
+             (fn ([layout] (do (tap> layout) (cy/relayout layout))))))
 
 (defn init-re-frame-events []
   "Register event handlers for re-frame"
+  (rf/reg-event-fx :relayout-graph
+                   (fn-traced [cofx [_ layout]]
+                              (do
+                                (tap> layout)
+                                {:relayout-cytoscape-graph layout})))
+
   (rf/reg-event-fx :add-statement
                    (fn-traced [cofx [_ statement]]
                               (let [new-db
@@ -82,7 +91,6 @@
 
 (defn init-re-frame-subscriptions []
   "Register subscribtions/queries for re-frame"
-  ;; re-frame subscriptions
   (rf/reg-sub :triple-set
               (fn [db _]
                 (-> db :graph :triple-set)))
@@ -94,6 +102,10 @@
   (rf/reg-sub :relation-ids
               (fn [db _]
                 (-> db :graph :relation-ids)))
+
+  (rf/reg-sub :selected-layout
+              (fn [db _]
+                (-> db :inputs :layout)))
 
   ;; reagent-forms integration hooks
   (rf/reg-sub :inputs

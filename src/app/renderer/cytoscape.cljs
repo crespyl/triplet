@@ -1,7 +1,8 @@
 (ns app.renderer.cytoscape
   (:require
    ["cytoscape" :as cytoscape]
-   ["cytoscape-cola" :as cola]))
+   ["cytoscape-cola" :as cola]
+   ["cytoscape-cose-bilkent" :as cose-bilkent]))
 
 (def cy nil)
 
@@ -40,8 +41,21 @@
                                 }))))
   )
 
+(defn relayout
+  ([] (relayout "cola"))
+  ([name] (let [layout-params (clj->js {
+                                       :name name
+                                       :animate true
+                                       :refresh 20
+                                       })]
+            (tap> [:test layout-params])
+            (.run (.layout cy layout-params))
+            )))
+
+
 (defn init-cytoscape [container graph]
   (let [el (js/document.getElementById container)]
+    (tap> [:init-cytoscape])
     (set! cy (cytoscape (clj->js  {
                                    :container el
                                    :style [
@@ -78,5 +92,6 @@
                                            ]
                                    })))
     (.use cytoscape (clj->js cola))
+    (.use cytoscape (clj->js cose-bilkent))
     (update-cytoscape graph))
   )

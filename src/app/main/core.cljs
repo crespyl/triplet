@@ -3,6 +3,17 @@
    ["electron" :as electron :refer [app BrowserWindow dialog ipcMain]]
    ))
 
+;; enable CSP-header
+;; (.defaultSession.webRequest.onHeadersReceived
+;;  electron/session (fn [details, callback]
+;;                     (callback
+;;                      (clj->js {
+;;                                :responseHeaders
+;;                                (assoc-in (js->clj details)
+;;                                          ["Content-Security-Policy"]
+;;                                          ["script-src self unsafe-eval"])
+;;                                }))))
+
 (def main-window (atom nil))
 
 (defn init-browser []
