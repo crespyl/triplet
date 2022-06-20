@@ -23,6 +23,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "cytoscape": "^3.21.1",
+    "cytoscape-cola": "^2.5.1",
     "highlight.js": "^11.5.1",
     "p5": "^1.4.1",
     "react": "^17.0.2",

@@ -106,10 +106,10 @@
 
 (defn root-component []
   [:div
-   [:div.logos
-    [:img.electron {:src "img/electron-logo.png"}]
-    [:img.cljs {:src "img/cljs-logo.svg"}]
-    [:img.reagent {:src "img/reagent-logo.png"}]]
+   ;; [:div.logos
+   ;;  [:img.electron {:src "img/electron-logo.png"}]
+   ;;  [:img.cljs {:src "img/cljs-logo.svg"}]
+   ;;  [:img.reagent {:src "img/reagent-logo.png"}]]
    ;[ui/graph-view "sketch"]
    [ui/cytoscape-view "cytoscape"]
    [:div#controls [ui/input-form]]
@@ -132,5 +132,5 @@
    [root-component]
    (js/document.getElementById "app-container"))
   ;(sketch/graph-view)
-  (cy/init-cytoscape "cytoscape")
+  (cy/init-cytoscape "cytoscape" (get-in @re-frame.db/app-db [:graph]))
   )

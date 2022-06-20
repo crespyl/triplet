@@ -1,13 +1,13 @@
 (ns app.renderer.cytoscape
   (:require
-   ["cytoscape" :as cytoscape]))
+   ["cytoscape" :as cytoscape]
+   ["cytoscape-cola" :as cola]))
 
 (def cy nil)
 
 (defn graph-to-cytoscape [graph]
   "converts a list of entity ids/names and a set of triples to an object with
   cytoscape-ready elements and edges"
-  (tap> graph)
   (let [nodes (map (fn [entity-id]
                      { :group "nodes"
                       :data { :id entity-id :weight 1 } })
@@ -31,21 +31,19 @@
   (let [cy-graph (graph-to-cytoscape graph)
         nodes (:nodes cy-graph)
         edges (:edges cy-graph)]
-    (tap> [:update-cy nodes edges])
     (.add cy (clj->js nodes))
     (.add cy (clj->js edges))
     (.run (.layout cy (clj->js {
-                                :name "breadthfirst"
-                                :directed true
+                                :name "cola"
+                                :animate true
+                                :refresh 20
                                 }))))
   )
 
-(defn init-cytoscape [container]
+(defn init-cytoscape [container graph]
   (let [el (js/document.getElementById container)]
-    (tap> [:init-cytoscape container el])
     (set! cy (cytoscape (clj->js  {
                                    :container el
-                                   :layout "grid"
                                    :style [
                                            {
                                             :selector "node"
@@ -79,5 +77,6 @@
                                             }
                                            ]
                                    })))
-    (tap> [:created-cy cy]))
+    (.use cytoscape (clj->js cola))
+    (update-cytoscape graph))
   )
