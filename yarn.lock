@@ -400,6 +400,17 @@ crypto-browserify@^3.11.0:
     randombytes "^2.0.0"
     randomfill "^1.0.3"
 
+cytoscape@^3.21.1:
+  version "3.21.1"
+  resolved "https://registry.yarnpkg.com/cytoscape/-/cytoscape-3.21.1.tgz#2d3a8b8ade8661c9efab2e9bf7a354b374d6cf0e"
+  integrity sha512-mxdxCzuGHOMSWHUFO+/ZQPeMNtJAm81LGzdwP02LhT592ZRfHWCvHUY++HpnSjg/SgrKg1CMqegY/HvYLUS1qg==
+  dependencies:
+    heap "^0.2.6"
+    lodash.debounce "^4.0.8"
+    lodash.get "^4.4.2"
+    lodash.set "^4.3.2"
+    lodash.topath "^4.5.2"
+
 debug@^2.2.0, debug@^2.6.8, debug@^2.6.9:
   version "2.6.9"
   resolved "https://registry.npmjs.org/debug/-/debug-2.6.9.tgz"
@@ -814,6 +825,11 @@ hash.js@^1.0.0, hash.js@^1.0.3:
     inherits "^2.0.3"
     minimalistic-assert "^1.0.1"
 
+heap@^0.2.6:
+  version "0.2.7"
+  resolved "https://registry.yarnpkg.com/heap/-/heap-0.2.7.tgz#1e6adf711d3f27ce35a81fe3b7bd576c2260a8fc"
+  integrity sha512-2bsegYkkHO+h/9MGbn6KWcE45cHZgPANo5LXF7EvWdT0yT2EguSVO1nDgU5c8+ZOPwp2vMNa7YFsJhVcDR9Sdg==
+
 highlight.js@^11.5.1:
   version "11.5.1"
   resolved "https://registry.yarnpkg.com/highlight.js/-/highlight.js-11.5.1.tgz#027c24e4509e2f4dcd00b4a6dda542ce0a1f7aea"
@@ -978,10 +994,25 @@ locate-path@^2.0.0:
     p-locate "^2.0.0"
     path-exists "^3.0.0"
 
-lodash.get@^4.0.0:
+lodash.debounce@^4.0.8:
+  version "4.0.8"
+  resolved "https://registry.yarnpkg.com/lodash.debounce/-/lodash.debounce-4.0.8.tgz#82d79bff30a67c4005ffd5e2515300ad9ca4d7af"
+  integrity sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==
+
+lodash.get@^4.0.0, lodash.get@^4.4.2:
   version "4.4.2"
   resolved "https://registry.npmjs.org/lodash.get/-/lodash.get-4.4.2.tgz"
   integrity sha1-LRd/ZS+jHpObRDjVNBSZ36OCXpk=
+
+lodash.set@^4.3.2:
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/lodash.set/-/lodash.set-4.3.2.tgz#d8757b1da807dde24816b0d6a84bea1a76230b23"
+  integrity sha512-4hNPN5jlm/N/HLMCO43v8BXKq9Z7QdAGc/VGrRD61w8gN9g/6jF9A4L1pbUgBLCffi0w9VsXfTOij5x8iTyFvg==
+
+lodash.topath@^4.5.2:
+  version "4.5.2"
+  resolved "https://registry.yarnpkg.com/lodash.topath/-/lodash.topath-4.5.2.tgz#3616351f3bba61994a0931989660bd03254fd009"
+  integrity sha512-1/W4dM+35DwvE/iEd1M9ekewOSTlpFekhw9mhAtrwjVqUr83/ilQiyAvmg4tVX7Unkcfl1KC+i9WdaT4B6aQcg==
 
 lodash@^4.17.10:
   version "4.17.21"

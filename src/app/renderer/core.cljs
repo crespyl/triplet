@@ -9,7 +9,8 @@
 
    [app.renderer.components :as ui]
 
-   [app.renderer.sketch :as sketch]))
+   [app.renderer.sketch :as sketch]
+   [app.renderer.cytoscape :as cy]))
 
 (enable-console-print!)
 
@@ -27,38 +28,47 @@
 (defn init-re-frame-effects []
   (rf/reg-fx :update-sketch-graph
              (fn [graph]
-               (sketch/update-graph-data! graph))))
+               (sketch/update-graph-data! graph)))
+  (rf/reg-fx :update-cytoscape-graph
+             (fn [graph]
+               (cy/update-cytoscape graph))))
 
 (defn init-re-frame-events []
   "Register event handlers for re-frame"
-  (rf/reg-event-db :add-statement
-                   (fn-traced [db [_ statement]]
-                              (update-in db [:graph :triple-set] #(conj % statement))))
+  (rf/reg-event-fx :add-statement
+                   (fn-traced [cofx [_ statement]]
+                              (let [new-db
+                                    (update-in (:db cofx) [:graph :triple-set] #(conj % statement))]
+                                {:db new-db
+                                 :update-cytoscape-graph (get-in new-db [:graph])})))
 
   (rf/reg-event-fx :add-entity-name
                    (fn-traced [cofx [_ ent]]
                      (let [new-db
                            (update-in (:db cofx) [:graph :entity-ids] #(conj % ent))]
                        {:db new-db
-                        :update-sketch-graph (get-in new-db [:graph])})))
+                        ;:update-cytoscape-graph (get-in new-db [:graph])
+                        })))
 
   (rf/reg-event-fx :add-relation-name
                    (fn-traced [cofx [_ rel]]
                               (let [new-db
                                     (update-in (:db cofx) [:graph :relation-ids] #(conj % rel))]
                                 {:db new-db
-                                 :update-sketch-graph (get-in new-db [:graph])})))
+                                 ;:update-cytoscape-graph (get-in new-db [:graph])
+                                 })))
 
   (rf/reg-event-db :process-input
                    (fn-traced [db [_ input]]
                               (if-let [matches (re-matches TRIPLE-REGEX input)]
                                 (let [[sub pred obj] (rest matches)]
-                                  (do
-                                    (rf/dispatch [:add-statement [sub pred obj]])
-                                    (if-not (contains? (-> db :graph :entity-ids)   sub)  (rf/dispatch [:add-entity-name   sub]))
-                                    (if-not (contains? (-> db :graph :relation-ids) pred) (rf/dispatch [:add-relation-name pred]))
-                                    (if-not (contains? (-> db :graph :entity-ids)   obj)  (rf/dispatch [:add-entity-name   obj]))
-                                    (rf/dispatch [:set-value [:main-input] ""])))
+                                  (if-not (contains? (-> db :graph :triple-set) [sub pred obj])
+                                    (do
+                                      (if-not (contains? (-> db :graph :entity-ids)   sub)  (rf/dispatch [:add-entity-name   sub]))
+                                      (if-not (contains? (-> db :graph :relation-ids) pred) (rf/dispatch [:add-relation-name pred]))
+                                      (if-not (contains? (-> db :graph :entity-ids)   obj)  (rf/dispatch [:add-entity-name   obj]))))
+                                      (rf/dispatch [:add-statement [sub pred obj]])
+                                  (rf/dispatch [:set-value [:main-input] ""]))
                                 (.log js/console (str "ignoring invalid statement: " input)))))
 
   ;; general purpose setters for use with reagent-forms
@@ -100,7 +110,8 @@
     [:img.electron {:src "img/electron-logo.png"}]
     [:img.cljs {:src "img/cljs-logo.svg"}]
     [:img.reagent {:src "img/reagent-logo.png"}]]
-   [ui/graph-view "sketch"]
+   ;[ui/graph-view "sketch"]
+   [ui/cytoscape-view "cytoscape"]
    [:div#controls [ui/input-form]]
    [ui/triple-log]
    [ui/entity-ids]
@@ -120,4 +131,6 @@
   (rd/render
    [root-component]
    (js/document.getElementById "app-container"))
-  (sketch/graph-view))
+  ;(sketch/graph-view)
+  (cy/init-cytoscape "cytoscape")
+  )

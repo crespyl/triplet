@@ -10,15 +10,25 @@
    ))
 
 (def reagent-forms-events
-  {:get (fn [path] @(rf/subscribe [:value path]))
-   :save! (fn [path value] (rf/dispatch [:set-value path value]))
+  {:get     (fn [path]
+              @(rf/subscribe [:value path]))
+   :save!   (fn [path value]
+              (rf/dispatch [:set-value path value]))
    :update! (fn [path save-fn value]
               ; save-fn should accept two arguments: old-value, new-value
               (rf/dispatch [:update-value save-fn path value]))
-   :doc (fn [] @(rf/subscribe [:inputs]))})
+   :doc     (fn [] @(rf/subscribe [:inputs]))})
 
 (defn graph-view [host]
   [:div {:id host :class ["sketch quill"]}])
+
+(defn cytoscape-view [container]
+  [:div {:id container
+         :class ["cytoscape"]
+         :style {
+                 :width "50%"
+                 :height 300
+                 }}])
 
 (defn input-form []
   (let [gettext (fn [e] (-> e .-target .-elements first .-value))]
