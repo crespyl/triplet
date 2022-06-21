@@ -1,0 +1,97 @@
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+    margin: 0px;
+}
+
+// form input#main-input {
+//   margin-right: 5px;
+// }
+
+#app-container {
+    height: 100vh;
+    padding: 10px;
+    display: grid;
+    grid-gap: .5rem;
+    grid-template-columns: 2fr 2fr 1fr;
+    grid-template-rows: 3fr 3fr 1fr 2fr;
+    grid-template-areas: "cytoscape cytoscape sidebar"
+                         "cytoscape cytoscape sidebar"
+                         "controls  controls  sidebar"
+                         "info      info      info";
+}
+
+form.grid {
+    display: grid;
+    grid-gap: 1rem;
+
+    .row {
+        display: grid;
+        grid-gap: 1rem;
+        grid-template-columns: 1fr 4fr 2fr;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        grid-template-areas: "label input button";
+        align-items: center;
+    }
+
+    label {
+        text-align: right;
+        font-weight: bold;
+    }
+}
+
+#cytoscape {
+    grid-area: cytoscape;
+}
+
+#controls {
+    grid-area: controls;
+}
+
+#info {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    min-height: 5em;
+    grid-area: info;
+
+    > div {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.triple-container {
+    button.delete-button {
+        max-width: 30%;
+    }
+}
+
+.triple {
+  display: inline-block;
+  border: 1px solid black;
+  padding: 2px;
+}
+
+.entity {
+  background: lightgreen;
+  margin: 3px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.relation {
+  background: lightblue;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.scroll-list {
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+}

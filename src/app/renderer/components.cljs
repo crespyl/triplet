@@ -25,15 +25,12 @@
 (defn cytoscape-view [container]
   [:div {:id container
          :class ["cytoscape"]
-         :style {
-                 :width "50%"
-                 :height 300
-                 }}])
+         }])
 
 (defn input-form []
   (let [gettext (fn [e] (-> e .-target .-elements first .-value))]
     [bind-fields
-     [:form {:on-submit (fn [e]
+     [:form.grid {:on-submit (fn [e]
                           (.preventDefault e)
                           (rf/dispatch [:process-input (gettext e)]))}
       [:div.row
@@ -51,33 +48,53 @@
        [:button {:on-click (fn [e]
                              (.preventDefault e)
                              (tap> [:relayout-onclick])
-                             (rf/dispatch [:relayout-graph @(rf/subscribe [:selected-layout])]))}
+                             (rf/dispatch [:relayout-graph]))}
         "Re-layout"]]]
      reagent-forms-events]))
 
+(defn entity [id]
+  [:span.entity id])
+
+(defn relation [id]
+  [:span.relation id])
+
 (defn triple [subject predicate object]
-  [:div.triple
-   [:span.entity.subject subject]
-   [:span.predicate    predicate]
-   [:span.entity.object   object]])
+  [:div.triple-container
+   [:div.triple
+    [entity subject]
+    [relation predicate]
+    [entity object]]
+   [:button.delete-button "X"]])
 
 (defn triple-log []
-  [:ol#triple-log.scroll-list
+  [:ol#triple-log
    {:style {:display "inline-block"}}
    (for [entry @(rf/subscribe [:triple-set])]
      ^{:key (hash entry)}
      [:li [apply triple entry]])])
 
 (defn entity-ids []
-  [:ul#entity-ids.scroll-list
+  [:ul#entity-ids
    {:style {:display "inline-block"}}
    (for [entry @(rf/subscribe [:entity-ids])]
      ^{:key (str "entity-" entry)}
-     [:li.entity entry])])
+     [:li [entity entry]])])
 
 (defn relation-ids []
-  [:ul#relation-ids.scroll-list
+  [:ul#relation-ids
    {:style {:display "inline-block"}}
    (for [entry @(rf/subscribe [:relation-ids])]
      ^{:key (str "relation-" entry)}
-     [:li.predicate entry])])
+     [:li [relation entry]])])
+
+
+(defn root-component []
+  [:<>
+   ;[graph-view "sketch"]
+   [cytoscape-view "cytoscape"]
+   [:div#controls [input-form]]
+   [:div#info.grid
+    [:div.scroll-list [triple-log]]
+    [:div.scroll-list [entity-ids]]
+    [:div.scroll-list [relation-ids]]]
+   ])

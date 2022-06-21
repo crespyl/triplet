@@ -1,14 +1,61 @@
-
 * {
   box-sizing: border-box;
 }
-.logos img {
-  width: 100px;
-  margin-left: 5px;
+
+body {
+  margin: 0px;
 }
 
-form input#main-input {
-  margin-right: 5px;
+#app-container {
+  height: 100vh;
+  padding: 10px;
+  display: grid;
+  grid-gap: 0.5rem;
+  grid-template-columns: 2fr 2fr 1fr;
+  grid-template-rows: 3fr 3fr 1fr 2fr;
+  grid-template-areas: "cytoscape cytoscape sidebar" "cytoscape cytoscape sidebar" "controls  controls  sidebar" "info      info      info";
+}
+
+form.grid {
+  display: grid;
+  grid-gap: 1rem;
+}
+form.grid .row {
+  display: grid;
+  grid-gap: 1rem;
+  grid-template-columns: 1fr 4fr 2fr;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  grid-template-areas: "label input button";
+  align-items: center;
+}
+form.grid label {
+  text-align: right;
+  font-weight: bold;
+}
+
+#cytoscape {
+  grid-area: cytoscape;
+}
+
+#controls {
+  grid-area: controls;
+}
+
+#info {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  min-height: 5em;
+  grid-area: info;
+}
+#info > div {
+  width: 100%;
+  height: 100%;
+}
+
+.triple-container button.delete-button {
+  max-width: 30%;
 }
 
 .triple {
@@ -24,29 +71,16 @@ form input#main-input {
   padding-right: 4px;
 }
 
-.predicate {
+.relation {
   background: lightblue;
   padding-left: 4px;
   padding-right: 4px;
 }
 
-li {
-  margin: 4px;
-}
-
-.typeahead-list {
-  background: cornsilk;
-}
-
-.typeahead-highlighted {
-  color: green;
-}
-
-.typeahead {
-  display: inline-block;
-}
-
 .scroll-list {
-  max-height: 200px;
+  width: 100%;
+  height: 100%;
   overflow-y: scroll;
 }
+
+/*# sourceMappingURL=main.css.map */

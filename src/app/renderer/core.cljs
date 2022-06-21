@@ -8,7 +8,6 @@
    [quil.core :as q]
 
    [app.renderer.components :as ui]
-
    [app.renderer.sketch :as sketch]
    [app.renderer.cytoscape :as cy]))
 
@@ -39,9 +38,9 @@
 (defn init-re-frame-events []
   "Register event handlers for re-frame"
   (rf/reg-event-fx :relayout-graph
-                   (fn-traced [cofx [_ layout]]
-                              (do
-                                (tap> layout)
+                   (fn-traced [cofx [_ l]]
+                              (let [layout (or l (-> cofx :db :inputs :layout))]
+                                (tap> [:relayout-graph layout ])
                                 {:relayout-cytoscape-graph layout})))
 
   (rf/reg-event-fx :add-statement
@@ -116,20 +115,6 @@
               (fn [doc [_ path]]
                 (get-in doc path))))
 
-(defn root-component []
-  [:div
-   ;; [:div.logos
-   ;;  [:img.electron {:src "img/electron-logo.png"}]
-   ;;  [:img.cljs {:src "img/cljs-logo.svg"}]
-   ;;  [:img.reagent {:src "img/reagent-logo.png"}]]
-   ;[ui/graph-view "sketch"]
-   [ui/cytoscape-view "cytoscape"]
-   [:div#controls [ui/input-form]]
-   [ui/triple-log]
-   [ui/entity-ids]
-   [ui/relation-ids]
-   ])
-
 (defonce initialized?
   (do
     (rf/dispatch-sync [:initialize])
@@ -141,7 +126,7 @@
   (init-re-frame-subscriptions)
   (tap> [:after-load])
   (rd/render
-   [root-component]
+   [ui/root-component]
    (js/document.getElementById "app-container"))
   ;(sketch/graph-view)
   (cy/init-cytoscape "cytoscape" (get-in @re-frame.db/app-db [:graph]))
