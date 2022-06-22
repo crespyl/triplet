@@ -1,6 +1,6 @@
 {
   "name": "triplet",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "simple graph editor for interactive concept mapping",
   "main": "resources/main.js",
   "scripts": {

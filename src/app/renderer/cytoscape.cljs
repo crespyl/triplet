@@ -37,18 +37,60 @@
                     :target obj
                     :directed true
                     :edge-type pred
-                    }})
+                    }}))
 
-  )
+(defn triple-to-cytoscape-node
+  "Transforms a triple of [node-id rel-id node-id] into a single Cytoscape
+  element representing just that edge (i.e. not including the nodes)"
+  [[subj pred _obj]]
+  (tap> [:to-node subj pred _obj])
+  (identity {:group "nodes"
+             :data {
+                    :id (hash [subj pred])
+                    :label pred
+                    :triplet-type :predicate-cluster
+                    :shape "circle"
+                    }}))
+
+(defn make-cytoscape-edge [src tgt]
+  (identity {:group "edges"
+             :data {
+                    :id (hash [src tgt])
+                    :source (-> src :data :id)
+                    :target (-> tgt :data :id)
+                    :directed true
+                    }}))
 
 (defn triple-to-cytoscape-elements
   "Transforms a triple of [node-id rel-id node-id] into a vec of hashes
-  representing Cytoscape elements"
+  representing Cytoscape elements, reifying the relation into [[node -> rel],
+  [rel -> node]] pairs"
   [[subj pred obj]]
   (let [subj-ele (node-to-cytoscape-node subj)
         obj-ele  (node-to-cytoscape-node obj)
-        pred-ele (triple-to-cytoscape-edge pred)]
-    [subj-ele pred-ele obj-ele]
+        pred-ele (triple-to-cytoscape-node [subj pred obj])]
+    [subj-ele (make-cytoscape-edge subj-ele pred-ele)
+     pred-ele (make-cytoscape-edge pred-ele obj-ele)
+     obj-ele]
+    ))
+
+(defn relayout
+  "Triggers the Cytoscape view to re-apply the selected layout"
+  ([] (relayout layout-name))
+  ([name] (let [layout-params (clj->js {
+                                       :name name
+                                       :animate true
+                                       :refresh 20
+                                       })]
+            (set! layout-name name)
+            (.run (.layout cy layout-params))
+            )))
+
+(defn add-triple! [triple]
+  (let [eles (triple-to-cytoscape-elements triple)]
+    (tap> [:add-triple eles])
+    (.add cy (clj->js eles))
+    ;(relayout layout-name)
     ))
 
 (defn graph-to-cytoscape
@@ -60,26 +102,17 @@
     {:nodes nodes
      :edges edges}))
 
-(defn relayout
-  "Triggers the Cytoscape view to re-apply the selected layout"
-  ([] (relayout layout-name))
-  ([name] (let [layout-params (clj->js {
-                                       :name name
-                                       :animate true
-                                       :refresh 20
-                                       })]
-            (set! layout-name name)
-            (tap> [:test layout-params])
-            (.run (.layout cy layout-params))
-            )))
-
 (defn remove-triple!
   "Remove a triple from the Cytoscape graph"
   ([triple]
-   (let [ele (.getElementById cy (hash triple))]
-     (if-not (empty? ele)
+   (let [pairs [[(first triple) (second triple)]
+                [(second triple) (last triple)]]
+         ids (map hash pairs)]
+     (tap> [:remove-triple pairs ids])
+     (if-not (empty? ids)
        (do
-         (.remove cy ele)
+         (doseq [id ids]
+           (.remove cy (.getElementById cy id)))
          true)
        false))))
 
@@ -99,7 +132,8 @@
         edges (clj->js (flatten (:edges cy-graph)))]
     (.add cy nodes)
     (.add cy edges)
-    (relayout layout-name)))
+    (relayout layout-name)
+    ))
 
 (defn init-cytoscape [container graph]
   (let [el (js/document.getElementById container)]
@@ -112,20 +146,26 @@
                                             :style {
                                                     :label (fn [ele]  ;"data(id)"
                                                              (let [id (.data ele "id")
-                                                                   name (.data ele "name")]
-                                                               (or name id)))
+                                                                   label (.data ele "label")]
+                                                               (or label id)))
                                                     :text-valign "center"
                                                     :color "#000000"
-                                                    :background-color "#72a4ff"
+                                                    ;:background-color "#72a4ff"
+                                                    :background-color (fn [ele]  ;"data(id)"
+                                                                        (let [ttype (.data ele "triplet-type")]
+                                                                          (if (= ttype "predicate-cluster")
+                                                                            "#FFFFFF"
+                                                                            "#bfffbf")))
+
                                                     :shape (fn [ele]
                                                              (let [shape (.data ele "shape")]
-                                                               shape))
+                                                               (or shape "circle")))
                                                     :width (fn [ele]
                                                              (let [width (.data ele "width")]
-                                                               width))
+                                                               (or width 50)))
                                                     :height (fn [ele]
                                                              (let [height (.data ele "height")]
-                                                               height))
+                                                               (or height 50)))
                                                     }}
                                            {
                                             :selector "edge"
@@ -153,5 +193,8 @@
                                    })))
     (.use cytoscape (clj->js cola))
     (.use cytoscape (clj->js cose-bilkent))
-    (update-cytoscape! graph))
+    (tap> [:init-cy (:triple-set graph)])
+    (doall (map add-triple! (:triple-set graph)))
+    ;(update-cytoscape! graph)
+    )
   )

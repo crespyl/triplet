@@ -2,6 +2,7 @@
   (:require
    [app.renderer.components :as ui]
    [app.renderer.cytoscape :as cy]
+   [app.renderer.loader :as loader]
    ;[app.renderer.sketch :as sketch]
    [day8.re-frame.tracing :refer-macros [fn-traced]]
    [re-frame.core :as rf]
@@ -10,7 +11,7 @@
 
 (enable-console-print!)
 
-(def TRIPLE-REGEX #"([\w*/:-]+)\s+([\w*/:-]+)\s+([\w*/:-]+)")
+(def TRIPLE-REGEX #"([_()\w*/:-]+)\s+([_()\w*/:-]+)\s+([_()\w*/:-]+)")
 
 ;; re-frame init app state
 (rf/reg-event-db :initialize
@@ -31,6 +32,9 @@
   (rf/reg-fx :remove-cytoscape-triple
              (fn [triple]
                (cy/remove-triple! triple)))
+  (rf/reg-fx :add-cytoscape-triple
+             (fn [triple]
+               (cy/add-triple! triple)))
   (rf/reg-fx :remove-cytoscape-node
              (fn [node]
                (cy/remove-node! node)))
@@ -54,7 +58,7 @@
                               (let [new-db
                                     (update-in (:db cofx) [:graph :triple-set] #(conj % statement))]
                                 {:db new-db
-                                 :update-cytoscape-graph (get-in new-db [:graph])})))
+                                 :add-cytoscape-triple statement})))
 
   (rf/reg-event-fx :remove-statement
                    (fn-traced [cofx [_ statement]]
@@ -154,7 +158,6 @@
   (init-re-frame-effects)
   (init-re-frame-events)
   (init-re-frame-subscriptions)
-  (tap> [:after-load])
   (rd/render
    [ui/root-component]
    (js/document.getElementById "app-container"))
