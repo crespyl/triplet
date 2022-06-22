@@ -17,9 +17,10 @@
    (let [data (merge {:id node-id
                       :weight 1
                       :shape "round-rectangle"
-                      :width 60
-                      :height 60
+                      :width (* 11 (count node-id))
+                      :height 30
                       :name node-id ;(string/capitalize node-id)
+                      :triplet-type :node
                       }
                      meta)]
      {:group "nodes"
@@ -50,6 +51,7 @@
                     :label pred
                     :triplet-type :predicate-cluster
                     :shape "circle"
+                    :width (* 11 (count pred))
                     }}))
 
 (defn make-cytoscape-edge [src tgt]
@@ -90,7 +92,7 @@
   (let [eles (triple-to-cytoscape-elements triple)]
     (tap> [:add-triple eles])
     (.add cy (clj->js eles))
-    ;(relayout layout-name)
+    (relayout layout-name)
     ))
 
 (defn graph-to-cytoscape
@@ -150,6 +152,8 @@
                                                                (or label id)))
                                                     :text-valign "center"
                                                     :color "#000000"
+                                                    :border-width (fn [ele] (if (= (.data ele "triplet-type") "node") 1 0))
+                                                    :border-color "#000000"
                                                     ;:background-color "#72a4ff"
                                                     :background-color (fn [ele]  ;"data(id)"
                                                                         (let [ttype (.data ele "triplet-type")]
