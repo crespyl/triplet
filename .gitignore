@@ -6,4 +6,6 @@ resources/public/js
 resources/main.js
 target/
 
+.clj-kondo/
+
 NODE_DEPS

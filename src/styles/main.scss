@@ -46,6 +46,12 @@ form.grid {
 
 #cytoscape {
     grid-area: cytoscape;
+    border: 2px solid darkgray;
+}
+
+#sidebar {
+  grid-area: sidebar;
+  border: 2px solid darkgray;
 }
 
 #controls {
@@ -58,23 +64,34 @@ form.grid {
     align-items: center;
     min-height: 5em;
     grid-area: info;
+}
 
-    > div {
-        width: 100%;
-        height: 100%;
-    }
+#sidebar {
+  grid-area: sidebar;
+
 }
 
 .triple-container {
-    button.delete-button {
-        max-width: 30%;
-    }
+  display: flex;
+
+  .triple {
+    display: inline-block;
+    border: 1px solid black;
+    padding: 2px;
+    flex: 3;
+    text-align: center;
+  }
+
+  button.delete-button {
+    max-width: 30%;
+    flex: 1;
+  }
 }
 
-.triple {
-  display: inline-block;
-  border: 1px solid black;
-  padding: 2px;
+.triple-log {
+  width: 100%;
+  height: 100%;
+  overflow-y: scroll;
 }
 
 .entity {
@@ -93,5 +110,10 @@ form.grid {
 .scroll-list {
     width: 100%;
     height: 100%;
-    overflow-y: scroll;
+    overflow-y: auto;
+
+    ul, ol {
+      list-style-type: none;
+      padding-inline-start: 0;
+    }
 }

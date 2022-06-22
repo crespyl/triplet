@@ -1,13 +1,7 @@
 (ns app.renderer.components
   (:require
-   [day8.re-frame.tracing :refer-macros [fn-traced]]
-   [reagent.core :as r]
-   [reagent.dom :as rd]
    [re-frame.core :as rf]
-   [reagent-forms.core :refer [bind-fields]]
-
-   [app.renderer.sketch :as sketch]
-   ))
+   [reagent-forms.core :refer [bind-fields]]))
 
 (def reagent-forms-events
   {:get     (fn [path]
@@ -64,7 +58,9 @@
     [entity subject]
     [relation predicate]
     [entity object]]
-   [:button.delete-button "X"]])
+   [:button.delete-button
+    {:on-click #(rf/dispatch [:remove-statement [subject predicate object]])}
+    "X"]])
 
 (defn triple-log []
   [:ol#triple-log
@@ -87,11 +83,15 @@
      ^{:key (str "relation-" entry)}
      [:li [relation entry]])])
 
+(defn sidebar []
+  [:div#sidebar])
+
 
 (defn root-component []
   [:<>
    ;[graph-view "sketch"]
    [cytoscape-view "cytoscape"]
+   [sidebar]
    [:div#controls [input-form]]
    [:div#info.grid
     [:div.scroll-list [triple-log]]

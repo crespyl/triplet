@@ -1,15 +1,12 @@
 (ns app.renderer.core
   (:require
-   [day8.re-frame.tracing :refer-macros [fn-traced]]
-   [reagent.core :as r]
-   [reagent.dom :as rd]
-   [re-frame.core :as rf]
-   [reagent-forms.core :refer [bind-fields]]
-   [quil.core :as q]
-
    [app.renderer.components :as ui]
+   [app.renderer.cytoscape :as cy]
    [app.renderer.sketch :as sketch]
-   [app.renderer.cytoscape :as cy]))
+   [day8.re-frame.tracing :refer-macros [fn-traced]]
+   [re-frame.core :as rf]
+   [re-frame.db]
+   [reagent.dom :as rd]))
 
 (enable-console-print!)
 
@@ -24,19 +21,27 @@
                     :sketch {}
                     :inputs {}}))
 
-(defn init-re-frame-effects []
+(defn init-re-frame-effects
   "Register effect handlers for re-frame"
+  []
   (rf/reg-fx :update-sketch-graph
              (fn [graph]
                (sketch/update-graph-data! graph)))
+  (rf/reg-fx :remove-cytoscape-triple
+             (fn [triple]
+               (cy/remove-triple! triple)))
+  (rf/reg-fx :remove-cytoscape-node
+             (fn [node]
+               (cy/remove-node! node)))
   (rf/reg-fx :update-cytoscape-graph
              (fn [graph]
-               (cy/update-cytoscape graph)))
+               (cy/update-cytoscape! graph)))
   (rf/reg-fx :relayout-cytoscape-graph
-             (fn ([layout] (do (tap> layout) (cy/relayout layout))))))
+             (fn ([layout] (tap> layout) (cy/relayout layout)))))
 
-(defn init-re-frame-events []
+(defn init-re-frame-events
   "Register event handlers for re-frame"
+  []
   (rf/reg-event-fx :relayout-graph
                    (fn-traced [cofx [_ l]]
                               (let [layout (or l (-> cofx :db :inputs :layout))]
@@ -49,6 +54,29 @@
                                     (update-in (:db cofx) [:graph :triple-set] #(conj % statement))]
                                 {:db new-db
                                  :update-cytoscape-graph (get-in new-db [:graph])})))
+
+  (rf/reg-event-fx :remove-statement
+                   (fn-traced [cofx [_ statement]]
+                              (let [new-db
+                                    (update-in (:db cofx) [:graph :triple-set] #(disj % statement))]
+                                {:db new-db
+                                 :remove-cytoscape-triple statement})))
+
+  (rf/reg-event-fx :remove-entity
+                   (fn-traced [cofx [_ entity]]
+                              (let [new-db
+                                        ; remove entity from entity-ids list,
+                                        ; then remove all statements that
+                                        ; include the entity
+                                    (-> (:db cofx)
+                                        (update-in [:graph :entity-ids] #(disj % entity))
+                                        (update-in [:graph :triple-set] (fn [triples]
+                                                                          (set
+                                                                           (remove #(or (= entity (first %))
+                                                                                        (= entity (last %)))
+                                                                                   triples)))))]
+                                {:db new-db
+                                 :remove-cytoscape-node entity})))
 
   (rf/reg-event-fx :add-entity-name
                    (fn-traced [cofx [_ ent]]
@@ -88,8 +116,9 @@
                    (fn [db [_ f path value]]
                      (update-in db (into [:inputs] path) f value))))
 
-(defn init-re-frame-subscriptions []
+(defn init-re-frame-subscriptions
   "Register subscribtions/queries for re-frame"
+  []
   (rf/reg-sub :triple-set
               (fn [db _]
                 (-> db :graph :triple-set)))
