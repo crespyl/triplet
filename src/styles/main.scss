@@ -113,7 +113,8 @@ form.grid {
     overflow-y: auto;
 
     ul, ol {
-      list-style-type: none;
+      width: 100%;
       padding-inline-start: 0;
+      list-style-type: none;
     }
 }

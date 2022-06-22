@@ -18,7 +18,8 @@
     "shadow-cljs",
     "re-frame",
     "reagent",
-    "electron"
+    "electron",
+    "cytoscape"
   ],
   "author": "Peter Jacobs <peter@crespyl.net>",
   "license": "GPL-3.0",

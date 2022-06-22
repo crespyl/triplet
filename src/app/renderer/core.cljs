@@ -2,7 +2,7 @@
   (:require
    [app.renderer.components :as ui]
    [app.renderer.cytoscape :as cy]
-   [app.renderer.sketch :as sketch]
+   ;[app.renderer.sketch :as sketch]
    [day8.re-frame.tracing :refer-macros [fn-traced]]
    [re-frame.core :as rf]
    [re-frame.db]
@@ -18,15 +18,16 @@
                    {:graph {:triple-set   (sorted-set)
                             :entity-ids   (sorted-set)
                             :relation-ids (sorted-set)}
-                    :sketch {}
                     :inputs {}}))
 
 (defn init-re-frame-effects
   "Register effect handlers for re-frame"
   []
-  (rf/reg-fx :update-sketch-graph
-             (fn [graph]
-               (sketch/update-graph-data! graph)))
+
+  ;; (rf/reg-fx :update-sketch-graph
+  ;;            (fn [graph]
+  ;;              (sketch/update-graph-data! graph)))
+
   (rf/reg-fx :remove-cytoscape-triple
              (fn [triple]
                (cy/remove-triple! triple)))

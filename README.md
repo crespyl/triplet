@@ -1,10 +1,10 @@
 # Triplet
 
 A small project integrating Electron, ClojureScript, Re-Frame/Reagent/React,
-and Quil/Processing.
+and Cytoscape.
 
 The intent is to allow simple entry of triples, and to render/explore the
-triple set as a graph, visualized with Quil/Processing.
+triple set as a graph, leveraging Cytoscape for rendering and interaction.
 
 ## Development
 This project uses shadow-cljs with electron, which means if we want full
