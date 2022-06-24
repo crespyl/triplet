@@ -1,5 +1,6 @@
 (ns app.renderer.loader
-  (:require [clojure.string :as string]))
+  (:require [clojure.string :as string]
+            [re-frame.core :as rf]))
 
 
 (def demo-csv
@@ -45,3 +46,7 @@ Interrelationships, between, Different Map Segments")
                    (map string/trim
                         (string/split s ",")))))
        (string/split-lines csv-str)))
+
+(defn load-demo []
+ (let [rows (simple-parse demo-csv)]
+  (doseq [r (drop 1 rows)] (rf/dispatch [:add-statement r]))))

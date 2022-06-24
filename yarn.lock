@@ -463,6 +463,11 @@ crypto-browserify@^3.11.0:
     randombytes "^2.0.0"
     randomfill "^1.0.3"
 
+cytoscape-automove@^1.10.3:
+  version "1.10.3"
+  resolved "https://registry.yarnpkg.com/cytoscape-automove/-/cytoscape-automove-1.10.3.tgz#9d0c66f2a67dcc184d117ba4f04afa5f7457d2d4"
+  integrity sha512-Byj9RkFolphbSoZ/XAse3ch3i/5mDEwaYAy+s8iEJzbzDsnakxQ4BgaHNm9ydUqq38I3vtM6NSmRMTV2DK9QaA==
+
 cytoscape-cola@^2.5.1:
   version "2.5.1"
   resolved "https://registry.npmjs.org/cytoscape-cola/-/cytoscape-cola-2.5.1.tgz"

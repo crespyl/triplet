@@ -3,10 +3,104 @@
    [clojure.string :as string]
    ["cytoscape" :as cytoscape]
    ["cytoscape-cola" :as cola]
-   ["cytoscape-cose-bilkent" :as cose-bilkent]))
+   ["cytoscape-cose-bilkent" :as cose-bilkent]
+   ["cytoscape-automove" :as automove]))
 
-(def cy nil)
 (def layout-name "breadthfirst")
+
+(defn make-cytoscape-config [element]
+  {
+   :container element
+   :style [
+           {
+            :selector "node"
+            :style {
+                    :label (fn [ele] ;"data(id)"
+                             (let [id (.data ele "id")
+                                   label (.data ele "label")]
+                               (or label id)))
+                    :text-valign "center"
+                    :color "#000000"
+                    ;:border-width 1
+                    ;; :border-color "#000000"
+                    ;; :background-color "#72a4ff"
+                    :background-color "#bfffbf"
+                    :shape (fn [ele]
+                             (let [shape (.data ele "shape")]
+                               (or shape "circle")))
+                    :width (fn [ele]
+                             (let [width (.data ele "width")]
+                               (or width 50)))
+                    :height (fn [ele]
+                              (let [height (.data ele "height")]
+                                (or height 50)))
+                    }}
+           {:selector "node:locked"
+            :style {
+                    :border-color "black"
+                    :border-width 2}}
+           {:selector "node:selected"
+            :style {
+                    :background-color "#8bff78"
+                    :border-color "green"
+                    :border-width 2}}
+           {:selector "node.predicate"
+            :style {
+                    :border-width 0
+                    :background-color "#ffffff"
+                    :shape "ellipse"}}
+           {:selector "node.predicate:locked"
+            :style {
+                    :border-color "#555555"
+                    :border-width 1
+                    }}
+           {:selector "node.predicate:selected"
+            :style {
+                    :border-width 1
+                    :border-color "#aaaaaa"}}
+           {:selector "edge"
+            :style {
+                    :width 2
+                    :line-color "black"
+                    :opacity "0.5"
+                    ;:label "data(label)"
+                    :curve-style "straight"
+                    ;:mid-target-arrow-shape "triangle"
+                    ;:mid-target-arrow-color "#000000"
+                    }}
+           {:selector "edge.flash"
+            :style {:color "red"}}
+           {:selector "edge.inbound"
+            :style {
+                    :target-arrow-shape "triangle"
+                    :target-arrow-color "#000000"}}
+           {:selector "edge[label]"
+            :style {
+                    :label "data(label)"
+                    :text-rotation "autorotate"
+                    :text-margin-x "0px"
+                    :text-margin-y "10px"
+                    :text-valign "top"
+                    :text-halign "center"}}
+           ]
+   }
+  )
+
+(defn enable-automove! [cy]
+  (.automove cy (clj->js {
+                          :nodesMatching ;(fn [node] (and (.hasClass node "predicate") (not (.locked node))))
+                                        (.elements cy "node.predicate")
+                          :reposition "mean"
+                          })))
+
+(defn disable-automove! [cy]
+  (.automove cy "disable"))
+
+(defn re-apply-automove! [cy]
+  (when (.-automove cy)
+    (disable-automove! cy))
+  (enable-automove! cy)
+  cy)
 
 (defn node-to-cytoscape-node
   "Transforms node-id into a hash with additional data for use in Cytoscape,
@@ -15,7 +109,7 @@
    (node-to-cytoscape-node node-id nil))
   ([node-id meta]
    (let [data (merge {:id node-id
-                      :weight 1
+                      :weight 10
                       :shape "round-rectangle"
                       :width (* 11 (count node-id))
                       :height 30
@@ -24,6 +118,7 @@
                       }
                      meta)]
      {:group "nodes"
+      :classes "entity"
       :data data})))
 
 (defn triple-to-cytoscape-edge
@@ -31,6 +126,7 @@
   element representing just that edge (i.e. not including the nodes)"
   [[subj pred obj]]
   (identity {:group "edges"
+             :classes ["triple-edge"]
              :data {
                     :id (hash [subj pred obj])
                     :label pred
@@ -44,24 +140,35 @@
   "Transforms a triple of [node-id rel-id node-id] into a single Cytoscape
   element representing just that edge (i.e. not including the nodes)"
   [[subj pred _obj]]
-  (tap> [:to-node subj pred _obj])
   (identity {:group "nodes"
+             :classes ["predicate"]
              :data {
                     :id (hash [subj pred])
                     :label pred
-                    :triplet-type :predicate-cluster
-                    :shape "circle"
-                    :width (* 11 (count pred))
+                    :shape "ellipse"
+                    :width (* 12 (count pred))
+                    :height 20
+                    :weight 1
                     }}))
 
-(defn make-cytoscape-edge [src tgt]
-  (identity {:group "edges"
-             :data {
-                    :id (hash [src tgt])
-                    :source (-> src :data :id)
-                    :target (-> tgt :data :id)
-                    :directed true
-                    }}))
+(defn edge-id
+  ([src tgt]
+   (hash [:edge src tgt])))
+
+(defn make-cytoscape-edge
+  ([src tgt] (make-cytoscape-edge src tgt :default))
+  ([src tgt class]
+   (let [src-id (-> src :data :id)
+         tgt-id (-> tgt :data :id)]
+     (tap> [:make-edge src-id tgt-id (edge-id src-id tgt-id)])
+     (identity {:group "edges"
+                :classes [class]
+                :data {
+                       :id (edge-id src-id tgt-id)
+                       :source src-id
+                       :target tgt-id
+                       :directed true
+                       }}))))
 
 (defn triple-to-cytoscape-elements
   "Transforms a triple of [node-id rel-id node-id] into a vec of hashes
@@ -71,29 +178,57 @@
   (let [subj-ele (node-to-cytoscape-node subj)
         obj-ele  (node-to-cytoscape-node obj)
         pred-ele (triple-to-cytoscape-node [subj pred obj])]
-    [subj-ele (make-cytoscape-edge subj-ele pred-ele)
-     pred-ele (make-cytoscape-edge pred-ele obj-ele)
+    [subj-ele (make-cytoscape-edge subj-ele pred-ele :outbound)
+     pred-ele (make-cytoscape-edge pred-ele obj-ele :inbound)
      obj-ele]
     ))
 
-(defn relayout
-  "Triggers the Cytoscape view to re-apply the selected layout"
-  ([] (relayout layout-name))
-  ([name] (let [layout-params (clj->js {
-                                       :name name
-                                       :animate true
-                                       :refresh 20
-                                       })]
-            (set! layout-name name)
-            (.run (.layout cy layout-params))
-            )))
-
-(defn add-triple! [triple]
+(defn add-triple! [cy triple]
   (let [eles (triple-to-cytoscape-elements triple)]
     (tap> [:add-triple eles])
     (.add cy (clj->js eles))
-    (relayout layout-name)
-    ))
+    cy))
+
+(defn-  get-element [cy id] (.getElementById cy id))
+
+(defn remove-triple!
+  "Remove a triple from the Cytoscape graph.
+  To do this, we need to remove at least one edge (the second one), and
+  possibly the reified predicate node, if there are no other nodes left
+  connected to it (the first edge automatically gets removed if/when we remove
+  the predicate node).
+
+  If the triple is `[node-a -1> pred-b -2> node-c]`, then we remove link `-2>`,
+  check `pred-b` for edges, and remove `pred-b` if it has one (or fewer)
+  remaining.  "
+
+  ([cy [subj pred obj]]
+   (let [pred-node-id (hash [subj pred])
+         pred-node (get-element cy pred-node-id)
+         link-2-id (edge-id pred-node-id obj)
+         link-2    (get-element cy link-2-id)]
+     (.remove cy link-2) ; remove 2nd edge
+     (tap> [:remove-triple (count (.connectedEdges pred-node)) (js/console.log pred-node)])
+     (when (<= (count (.connectedEdges pred-node)) ; check number of edges on predicate node
+               1)
+       (.remove cy pred-node)))
+     cy))
+
+(defn relayout
+  "Triggers the Cytoscape view to re-apply the selected layout"
+  ([cy] (relayout cy layout-name))
+  ([cy name] (let [layout-params {
+                               :name name
+                               :animate true
+                               :refresh 20
+                               }]
+            (set! layout-name name)
+            (disable-automove! cy)
+            (.run (.layout
+                   (.elements cy)
+                   (clj->js layout-params)))
+            (enable-automove! cy)
+            cy)))
 
 (defn graph-to-cytoscape
   "converts a list of entity ids/names and a set of triples to an object with
@@ -104,23 +239,9 @@
     {:nodes nodes
      :edges edges}))
 
-(defn remove-triple!
-  "Remove a triple from the Cytoscape graph"
-  ([triple]
-   (let [pairs [[(first triple) (second triple)]
-                [(second triple) (last triple)]]
-         ids (map hash pairs)]
-     (tap> [:remove-triple pairs ids])
-     (if-not (empty? ids)
-       (do
-         (doseq [id ids]
-           (.remove cy (.getElementById cy id)))
-         true)
-       false))))
-
 (defn remove-node!
   "Remove a node from the Cytoscape graph"
-  ([node]
+  ([cy node]
    (let [ele (.getElementById cy node)]
      (if-not (empty? ele)
        (do
@@ -128,77 +249,44 @@
          true)
        false))))
 
-(defn update-cytoscape! [graph]
+(defn update-cytoscape! [cy graph]
   (let [cy-graph (graph-to-cytoscape graph)
         nodes (clj->js (flatten (:nodes cy-graph)))
         edges (clj->js (flatten (:edges cy-graph)))]
     (.add cy nodes)
     (.add cy edges)
-    (relayout layout-name)
+    (relayout cy layout-name)
     ))
 
-(defn init-cytoscape [container graph]
-  (let [el (js/document.getElementById container)]
-    (tap> [:init-cytoscape])
-    (set! cy (cytoscape (clj->js  {
-                                   :container el
-                                   :style [
-                                           {
-                                            :selector "node"
-                                            :style {
-                                                    :label (fn [ele]  ;"data(id)"
-                                                             (let [id (.data ele "id")
-                                                                   label (.data ele "label")]
-                                                               (or label id)))
-                                                    :text-valign "center"
-                                                    :color "#000000"
-                                                    :border-width (fn [ele] (if (= (.data ele "triplet-type") "node") 1 0))
-                                                    :border-color "#000000"
-                                                    ;:background-color "#72a4ff"
-                                                    :background-color (fn [ele]  ;"data(id)"
-                                                                        (let [ttype (.data ele "triplet-type")]
-                                                                          (if (= ttype "predicate-cluster")
-                                                                            "#FFFFFF"
-                                                                            "#bfffbf")))
+(defn setup-lock-toggle! [cy]
+  (.on cy "tap" "node" (fn [evt]
+                         (let [node (.-target evt)]
+                           (if (.locked node)
+                             (.unlock node)
+                             (.lock node))))))
 
-                                                    :shape (fn [ele]
-                                                             (let [shape (.data ele "shape")]
-                                                               (or shape "circle")))
-                                                    :width (fn [ele]
-                                                             (let [width (.data ele "width")]
-                                                               (or width 50)))
-                                                    :height (fn [ele]
-                                                             (let [height (.data ele "height")]
-                                                               (or height 50)))
-                                                    }}
-                                           {
-                                            :selector "edge"
-                                            :style {
-                                                    :width 2
-                                                    :line-color "black"
-                                                    :opacity "0.5"
-                                                    :label "data(label)"
-                                                    :mid-target-arrow-shape "triangle"
-                                                    :mid-target-arrow-color "#000000"
-                                                    }
-                                            }
-                                           {
-                                            :selector "edge[label]"
-                                            :css {
-                                                  :label "data(label)"
-                                                  :text-rotation "autorotate"
-                                                  :text-margin-x "0px"
-                                                  :text-margin-y "10px"
-                                                  :text-valign "top"
-                                                  :text-halign "center"
-                                                  }
-                                            }
-                                           ]
-                                   })))
-    (.use cytoscape (clj->js cola))
-    (.use cytoscape (clj->js cose-bilkent))
-    (tap> [:init-cy (:triple-set graph)])
-    (doall (map add-triple! (:triple-set graph)))
-    ;(update-cytoscape! graph)
-    )
-  )
+(defn clear-event-handlers! [cy]
+  (.off cy "tap"))
+
+(defn automove-drag-set
+  "Get the set of node ids that should be dragged along when the given node is
+  moved by the user"
+  [cy id]
+  (map #(.id %) (.outgoers (.getElementById cy id) "node")))
+
+(defn register-extensions! [_]
+  (.use cytoscape (clj->js cola))
+  (.use cytoscape (clj->js cose-bilkent))
+  (when-not (.-automove cytoscape)
+    (tap> (.-automove cytoscape))
+    (.use cytoscape (clj->js automove))))
+
+(defn init-cytoscape [container graph]
+  (let [el (js/document.getElementById container)
+        cy  (cytoscape (clj->js (make-cytoscape-config el)))]
+    (doseq [triple (:triple-set graph)]
+      (add-triple! cy triple))
+    cy))
+
+(defn remount [cy container]
+  (.mount cy (js/document.getElementById container)))

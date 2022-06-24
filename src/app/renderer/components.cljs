@@ -33,17 +33,19 @@
                 :id :main-input
                 :placeholder "subject predicate object"}]
        [:button {:type :submit}
-        "Parse"]]
+        "Parse"]
+       ]
       [:div.row
        [:label {:for :layout} "Layout:"]
-       [:select {:field :list :id :layout}
-        (for [l [:breadthfirst :random :grid :circle :cose :cose-bilkent]]
+       [:select {:field :list :id :layout :defaultValue :cose-bilkent}
+        (for [l [:cose-bilkent :cose :breadthfirst :random :grid :circle]]
           [:option {:key l} (subs (str l) 1)])]
        [:button {:on-click (fn [e]
                              (.preventDefault e)
-                             (tap> [:relayout-onclick])
                              (rf/dispatch [:relayout-graph]))}
-        "Re-layout"]]]
+        "Re-layout"]
+       [:label {:for :auto-relayout} "Auto Re-layout"]
+       [:input {:field :checkbox :id :auto-relayout :checked true}]]]
      reagent-forms-events]))
 
 (defn entity [id]
