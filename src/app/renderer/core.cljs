@@ -21,6 +21,7 @@
                             :entity-ids   (sorted-set)
                             :relation-ids (sorted-set)}
                     :cytoscape nil
+                    :automove-predicate-nodes true
                     :inputs {}}))
 
 (defn init-re-frame-events
@@ -43,6 +44,15 @@
                                     (tap> [:remount])
                                     (cy/remount cytoscape container)))
                                 (assoc-in db [:cytoscape] cytoscape))))
+  (rf/reg-event-db :set-automove-predicate-nodes
+                   (fn-traced [db [_ enable-automove?]]
+                              (if enable-automove?
+                                (-> db
+                                    (update-in [:cytoscape] #(cy/enable-automove! %))
+                                    (assoc-in [:automove-predicate-nodes] true))
+                                (-> db
+                                    (update-in [:cytoscape] #(cy/disable-automove! %))
+                                    (assoc-in [:automove-predicate-nodes] false)))))
 
   (rf/reg-event-db :relayout-graph
                    (fn-traced [db [_ l]]
@@ -52,8 +62,10 @@
                            (update-in [:cytoscape] #(cy/relayout (:cytoscape db) layout))))))
 
   (rf/reg-event-db :add-statement
-                   (fn-traced [db [_ statement]]
-                              (when (get-in db [:inputs :auto-relayout])
+                   (fn-traced [db [_ statement skip-relayout]]
+                              (tap> [:add-statement statement skip-relayout])
+                              (when (and (nil? skip-relayout)
+                                         (get-in db [:inputs :auto-relayout]))
                                 (rf/dispatch [:relayout-graph]))
                               (-> db
                                   (update-in [:graph :triple-set] #(conj % statement))
@@ -158,4 +170,4 @@
   (rf/dispatch-sync [:init-cytoscape "cytoscape"]))
 
 ;(def rows (app.renderer.loader/simple-parse app.renderer.loader/demo-csv))
-;(doseq [r (drop 1 rows)] (rf/dispatch [:add-statement r]))
+;(doseq [r (drop 1 rows)] (rf/dispatch [:add-statement r true]))

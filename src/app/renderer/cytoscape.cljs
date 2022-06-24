@@ -21,9 +21,6 @@
                                (or label id)))
                     :text-valign "center"
                     :color "#000000"
-                    ;:border-width 1
-                    ;; :border-color "#000000"
-                    ;; :background-color "#72a4ff"
                     :background-color "#bfffbf"
                     :shape (fn [ele]
                              (let [shape (.data ele "shape")]
@@ -34,30 +31,33 @@
                     :height (fn [ele]
                               (let [height (.data ele "height")]
                                 (or height 50)))
+                    :z-index 100
                     }}
-           {:selector "node:locked"
-            :style {
-                    :border-color "black"
-                    :border-width 2}}
            {:selector "node:selected"
             :style {
                     :background-color "#8bff78"
                     :border-color "green"
+                    :border-width 2
+                    :border-style "dashed"}}
+           {:selector "node:locked"
+            :style {
+                    :border-color "black"
                     :border-width 2}}
            {:selector "node.predicate"
             :style {
                     :border-width 0
-                    :background-color "#ffffff"
-                    :shape "ellipse"}}
+                    :background-opacity 0
+                    :shape "ellipse"
+                    :z-index 1}}
+           {:selector "node.predicate:selected"
+            :style {
+                    :border-width 1
+                    :border-color "#aaaaaa"}}
            {:selector "node.predicate:locked"
             :style {
                     :border-color "#555555"
                     :border-width 1
                     }}
-           {:selector "node.predicate:selected"
-            :style {
-                    :border-width 1
-                    :border-color "#aaaaaa"}}
            {:selector "edge"
             :style {
                     :width 2
@@ -88,13 +88,15 @@
 
 (defn enable-automove! [cy]
   (.automove cy (clj->js {
-                          :nodesMatching ;(fn [node] (and (.hasClass node "predicate") (not (.locked node))))
-                                        (.elements cy "node.predicate")
+                          :nodesMatching (fn [node] (and (not (.locked node))
+                                                         (.hasClass node "predicate")))
                           :reposition "mean"
-                          })))
+                          }))
+  cy)
 
 (defn disable-automove! [cy]
-  (.automove cy "disable"))
+  (.automove cy "destroy")
+  cy)
 
 (defn re-apply-automove! [cy]
   (when (.-automove cy)
@@ -259,11 +261,11 @@
     ))
 
 (defn setup-lock-toggle! [cy]
-  (.on cy "tap" "node" (fn [evt]
-                         (let [node (.-target evt)]
-                           (if (.locked node)
-                             (.unlock node)
-                             (.lock node))))))
+  (.on cy "dblclick" "node" (fn [evt]
+                              (let [node (.-target evt)]
+                                (if (.locked node)
+                                  (.unlock node)
+                                  (.lock node))))))
 
 (defn clear-event-handlers! [cy]
   (.off cy "tap"))
