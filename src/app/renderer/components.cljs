@@ -38,7 +38,7 @@
       [:div.row
        [:label {:for :layout} "Layout:"]
        [:select {:field :list :id :layout :defaultValue :cose-bilkent}
-        (for [l [:cose-bilkent :cose :breadthfirst :random :grid :circle]]
+        (for [l [:fcose :cose-bilkent :breadthfirst :random :grid :circle]]
           [:option {:key l} (subs (str l) 1)])]
        [:button {:on-click (fn [e]
                              (.preventDefault e)

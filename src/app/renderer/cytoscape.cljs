@@ -3,10 +3,9 @@
    [clojure.string :as string]
    ["cytoscape" :as cytoscape]
    ["cytoscape-cola" :as cola]
+   ["cytoscape-fcose" :as fcose]
    ["cytoscape-cose-bilkent" :as cose-bilkent]
    ["cytoscape-automove" :as automove]))
-
-(def layout-name "breadthfirst")
 
 (defn make-cytoscape-config [element]
   {
@@ -67,9 +66,9 @@
                     :curve-style "straight"
                     ;:mid-target-arrow-shape "triangle"
                     ;:mid-target-arrow-color "#000000"
+                    :transition-property "line-color opacity width"
+                    :transition-duration "1s"
                     }}
-           {:selector "edge.flash"
-            :style {:color "red"}}
            {:selector "edge.inbound"
             :style {
                     :target-arrow-shape "triangle"
@@ -82,6 +81,14 @@
                     :text-margin-y "10px"
                     :text-valign "top"
                     :text-halign "center"}}
+           {:selector "edge.flash"
+            :style {:line-color "red"}}
+           {:selector "edge.flash-new"
+            :style {:line-color "limegreen"
+                    :width 4
+                    :opacity 1
+                    :transition-property "line-color opacity width"
+                    :transition-duration "1s"}}
            ]
    }
   )
@@ -111,7 +118,7 @@
    (node-to-cytoscape-node node-id nil))
   ([node-id meta]
    (let [data (merge {:id node-id
-                      :weight 10
+                      :weight 1
                       :shape "round-rectangle"
                       :width (* 11 (count node-id))
                       :height 30
@@ -147,6 +154,7 @@
              :data {
                     :id (hash [subj pred])
                     :label pred
+                    :pred-type pred
                     :shape "ellipse"
                     :width (* 12 (count pred))
                     :height 20
@@ -185,10 +193,27 @@
      obj-ele]
     ))
 
+;;(let [layout-params {
+              ;;                  :name name
+            ;;                    :animate true
+            ;;                    :refresh 20
+            ;;                    }]
+            ;; (set! layout-name name)
+            ;; (disable-automove! cy)
+            ;; (.run (.layout
+            ;;        (.elements cy)
+            ;;        (clj->js layout-params)))
+            ;; (enable-automove! cy)
+            ;; cy)
+
 (defn add-triple! [cy triple]
-  (let [eles (triple-to-cytoscape-elements triple)]
-    (tap> [:add-triple eles])
-    (.add cy (clj->js eles))
+  (let [eles (triple-to-cytoscape-elements triple)
+        jseles (.add cy (clj->js eles))]
+    (let [params (clj->js { :name "cose" :animate true :refresh 20 })]
+      (js/console.log (.neighborhood jseles))
+      (tap> [:relayout params eles])
+      ;(.run (.layout (.neighborhood jseles) params))
+      (.flashClass jseles "flash-new" 2000))
     cy))
 
 (defn-  get-element [cy id] (.getElementById cy id))
@@ -202,7 +227,7 @@
 
   If the triple is `[node-a -1> pred-b -2> node-c]`, then we remove link `-2>`,
   check `pred-b` for edges, and remove `pred-b` if it has one (or fewer)
-  remaining.  "
+  remaining."
 
   ([cy [subj pred obj]]
    (let [pred-node-id (hash [subj pred])
@@ -210,7 +235,6 @@
          link-2-id (edge-id pred-node-id obj)
          link-2    (get-element cy link-2-id)]
      (.remove cy link-2) ; remove 2nd edge
-     (tap> [:remove-triple (count (.connectedEdges pred-node)) (js/console.log pred-node)])
      (when (<= (count (.connectedEdges pred-node)) ; check number of edges on predicate node
                1)
        (.remove cy pred-node)))
@@ -218,19 +242,17 @@
 
 (defn relayout
   "Triggers the Cytoscape view to re-apply the selected layout"
-  ([cy] (relayout cy layout-name))
-  ([cy name] (let [layout-params {
+  [cy name] (let [layout-params {
                                :name name
                                :animate true
                                :refresh 20
                                }]
-            (set! layout-name name)
-            (disable-automove! cy)
-            (.run (.layout
-                   (.elements cy)
-                   (clj->js layout-params)))
-            (enable-automove! cy)
-            cy)))
+              (disable-automove! cy)
+              (.run (.layout
+                     (.elements cy)
+                     (clj->js layout-params)))
+              (enable-automove! cy)
+              cy))
 
 (defn graph-to-cytoscape
   "converts a list of entity ids/names and a set of triples to an object with
@@ -257,7 +279,6 @@
         edges (clj->js (flatten (:edges cy-graph)))]
     (.add cy nodes)
     (.add cy edges)
-    (relayout cy layout-name)
     ))
 
 (defn setup-lock-toggle! [cy]
@@ -278,6 +299,7 @@
 
 (defn register-extensions! [_]
   (.use cytoscape (clj->js cola))
+  (.use cytoscape (clj->js fcose))
   (.use cytoscape (clj->js cose-bilkent))
   (when-not (.-automove cytoscape)
     (tap> (.-automove cytoscape))

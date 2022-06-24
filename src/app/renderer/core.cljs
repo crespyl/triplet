@@ -106,7 +106,7 @@
                                  })))
 
   (rf/reg-event-db :process-input
-                   (fn-traced [db [_ input]]
+                   (fn-traced [db [_ input skip-relayout]]
                               (if-let [matches (re-matches TRIPLE-REGEX (string/trim input))]
                                 (let [[sub pred obj] (rest matches)]
                                   (if-not (contains? (-> db :graph :triple-set) [sub pred obj])
@@ -114,7 +114,7 @@
                                       (if-not (contains? (-> db :graph :entity-ids)   sub)  (rf/dispatch [:add-entity-name   sub]))
                                       (if-not (contains? (-> db :graph :relation-ids) pred) (rf/dispatch [:add-relation-name pred]))
                                       (if-not (contains? (-> db :graph :entity-ids)   obj)  (rf/dispatch [:add-entity-name   obj]))))
-                                      (rf/dispatch [:add-statement [sub pred obj]])
+                                      (rf/dispatch [:add-statement [sub pred obj] skip-relayout])
                                   (rf/dispatch [:set-value [:main-input] ""]))
                                 (.log js/console (str "ignoring invalid statement: " input)))))
 
@@ -169,5 +169,6 @@
 
   (rf/dispatch-sync [:init-cytoscape "cytoscape"]))
 
-;(def rows (app.renderer.loader/simple-parse app.renderer.loader/demo-csv))
-;(doseq [r (drop 1 rows)] (rf/dispatch [:add-statement r true]))
+; (def rows (app.renderer.loader/simple-parse app.renderer.loader/demo-csv))
+; (doseq [r (drop 1 (map (fn [r] (string/join " " r)) rows))] (rf/dispatch [:process-input r true]))
+; (doseq [r (drop 1 rows)] (rf/dispatch [:add-statement r true]))
