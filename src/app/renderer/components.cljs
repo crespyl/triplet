@@ -49,10 +49,18 @@
      reagent-forms-events]))
 
 (defn entity [id]
-  [:span.entity id])
+  (let [meta @(rf/subscribe [:entity-meta id])
+        label (if-not (empty? (:label meta))
+                (:label meta)
+                id)]
+    [:span.entity label]))
 
 (defn relation [id]
-  [:span.relation id])
+  (let [meta @(rf/subscribe [:entity-meta id])
+        label (if-not (empty? (:label meta))
+                (:label meta)
+                id)]
+    [:span.relation label]))
 
 (defn triple [subject predicate object]
   [:div.triple-container
@@ -85,9 +93,42 @@
      ^{:key (str "relation-" entry)}
      [:li [relation entry]])])
 
-(defn sidebar []
-  [:div#sidebar])
+(defn entity-meta [entity-id]
+  (let [meta @(rf/subscribe [:entity-meta entity-id])]
+    ^{:key (str "entity-meta-box-" entity-id)}
+    [:div.entity-meta-box
+     {:data-entity-id entity-id}
+     [:div.meta-row.entity-id
+      [:label "ID:"]
+      [:span entity-id]]
+     (let [supported-keys [:label :width :height]]
+       (for [key supported-keys]
+         ^{:key (str "entity-meta-box-row" entity-id key)}
+         [:div.meta-row
+          [:label (str (subs (str key) 1) ": ")]
+          [:input {:value (key meta)
+                   :on-change (fn [evt]
+                                (let [value (-> evt .-target .-value)
+                                      new-meta (assoc-in meta [key] value)]
+                                  (tap> [:on-change entity-id key value meta new-meta ])
 
+                                  (rf/dispatch [:set-entity-meta entity-id
+                                                (if-not (empty? value)
+                                                  (assoc-in meta [key] value)
+                                                  (dissoc meta [key]))])))}]
+          ]))])
+  ;[:div (str entity-id)]
+  )
+
+(defn sidebar []
+  [:div#sidebar
+   [:div "Selection:"]
+   (let [selection @(rf/subscribe [:selection])]
+     (if-not (empty? selection)
+      (for [entity-id selection]
+        ^{:key (str "sidebar-meta-" entity-id)}
+        [entity-meta entity-id])
+      [:span "Nothing selected"]))])
 
 (defn root-component []
   [:<>

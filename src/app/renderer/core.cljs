@@ -48,14 +48,14 @@
                                 (assoc-in db [:cytoscape] cytoscape))))
 
   (rf/reg-event-db :set-automove-predicate-nodes
-                   (fn-traced [db [_ enable-automove?]]
-                              (if enable-automove?
-                                (-> db
-                                    (update-in [:cytoscape] #(cy/enable-automove! %))
-                                    (assoc-in [:automove-predicate-nodes] true))
-                                (-> db
-                                    (update-in [:cytoscape] #(cy/disable-automove! %))
-                                    (assoc-in [:automove-predicate-nodes] false)))))
+                   (fn [db [_ enable-automove?]]
+                     (if enable-automove?
+                       (-> db
+                           (update-in [:cytoscape] #(cy/enable-automove! %))
+                           (assoc-in [:automove-predicate-nodes] true))
+                       (-> db
+                           (update-in [:cytoscape] #(cy/disable-automove! %))
+                           (assoc-in [:automove-predicate-nodes] false)))))
 
   (rf/reg-event-db :dblclick-canvas
                    (fn [db [_ p]]
@@ -72,25 +72,35 @@
 
   (rf/reg-event-db :clear-selection
                    (fn [db [_ _]]
-                        (assoc-in db [:selection] (sorted-set))))
+                     (assoc-in db [:selection] (sorted-set))))
 
   (rf/reg-event-db :relayout-graph
-                   (fn-traced [db [_ l]]
+                   (fn [db [_ l]]
                      (let [layout (or l (get-in db [:inputs :layout]))]
                        (-> db
                            (assoc-in [:inputs :layout] layout)
                            (update-in [:cytoscape] #(cy/relayout (:cytoscape db) layout))))))
 
-  (rf/reg-event-db :add-statement
-                   (fn-traced [db [_ statement skip-relayout]]
-                              (tap> [:add-statement statement skip-relayout])
-                              (when (and (nil? skip-relayout)
-                                         (get-in db [:inputs :auto-relayout]))
-                                (rf/dispatch [:relayout-graph]))
+  (rf/reg-event-db :set-entity-meta
+                   (fn-traced [db [_x id meta]]
                               (-> db
-                                  (update-in [:graph :triple-set] #(conj % statement))
-                                  (update-in [:cytoscape] #(cy/add-triple! % statement))
-                                  (update-in [:cytoscape] #(cy/re-apply-automove! %)))))
+                                  (update-in [:cytoscape] #(cy/set-entity-meta % id meta))
+                                  (assoc-in [:entity-meta id] meta))))
+
+  (rf/reg-event-db :add-statement
+                   (fn [db [_ statement skip-relayout]]
+                     (when (and (nil? skip-relayout)
+                                (get-in db [:inputs :auto-relayout]))
+                       (rf/dispatch [:relayout-graph]))
+                     (let [subj (first statement)
+                           pred (second statement)
+                           predicate-node-id (cy/edge-id subj pred)]
+                       (tap> [:add-statement subj pred predicate-node-id])
+                       (-> db
+                           (update-in [:graph :triple-set] #(conj % statement))
+                           (assoc-in  [:entity-meta predicate-node-id] {:label pred})
+                           (update-in [:cytoscape] #(cy/add-triple! % statement))
+                           (update-in [:cytoscape] #(cy/re-apply-automove! %))))))
 
   (rf/reg-event-db :remove-statement
                    (fn-traced [db [_ statement]]
@@ -99,7 +109,14 @@
                          (update-in [:cytoscape] #(cy/remove-triple! % statement)))))
 
   (rf/reg-event-db :remove-entity
-                   (fn-traced [db [_ entity]]
+                   (fn [db [_ entity]]
+                     ; remove associated triples from cytoscape graph
+                     (let [triples (filter #(or (= entity (first %))
+                                                (= entity (last %)))
+                                           (get-in db [:graph :triple-set]))
+                           cy (get-in db [:cytoscape])]
+                       (doseq [t triples]
+                         (cy/remove-triple! cy t)))
                      (-> db
                          (update-in [:graph :entity-ids] #(disj % entity))
                          (update-in [:graph :triple-set] (fn [triples]
@@ -107,23 +124,20 @@
                                                             (remove #(or (= entity (first %))
                                                                          (= entity (last %)))
                                                                     triples))))
+                         (update-in [:entity-meta] #(dissoc % entity))
                          (update-in [:cytoscape] #(cy/remove-node! % entity)))))
 
   (rf/reg-event-fx :add-entity-name
-                   (fn-traced [cofx [_ ent]]
+                   (fn [cofx [_ ent]]
                      (let [new-db
                            (update-in (:db cofx) [:graph :entity-ids] #(conj % ent))]
-                       {:db new-db
-                        ;:update-cytoscape-graph (get-in new-db [:graph])
-                        })))
+                       {:db new-db})))
 
   (rf/reg-event-fx :add-relation-name
-                   (fn-traced [cofx [_ rel]]
-                              (let [new-db
-                                    (update-in (:db cofx) [:graph :relation-ids] #(conj % rel))]
-                                {:db new-db
-                                 ;:update-cytoscape-graph (get-in new-db [:graph])
-                                 })))
+                   (fn [cofx [_ rel]]
+                     (let [new-db
+                           (update-in (:db cofx) [:graph :relation-ids] #(conj % rel))]
+                       {:db new-db})))
 
   (rf/reg-event-db :process-input
                    (fn-traced [db [_ input skip-relayout]]
@@ -134,7 +148,7 @@
                                       (if-not (contains? (-> db :graph :entity-ids)   sub)  (rf/dispatch [:add-entity-name   sub]))
                                       (if-not (contains? (-> db :graph :relation-ids) pred) (rf/dispatch [:add-relation-name pred]))
                                       (if-not (contains? (-> db :graph :entity-ids)   obj)  (rf/dispatch [:add-entity-name   obj]))))
-                                      (rf/dispatch [:add-statement [sub pred obj] skip-relayout])
+                                  (rf/dispatch [:add-statement [sub pred obj] skip-relayout])
                                   (rf/dispatch [:set-value [:main-input] ""]))
                                 (.log js/console (str "ignoring invalid statement: " input)))))
 
@@ -161,6 +175,14 @@
   (rf/reg-sub :relation-ids
               (fn [db _]
                 (-> db :graph :relation-ids)))
+
+  (rf/reg-sub :selection
+              (fn [db _]
+                (-> db :selection)))
+
+  (rf/reg-sub :entity-meta
+              (fn [db [_ path]]
+                (get-in (:entity-meta db) path)))
 
   (rf/reg-sub :selected-layout
               (fn [db _]

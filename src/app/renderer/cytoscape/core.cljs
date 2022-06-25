@@ -35,6 +35,11 @@
   (enable-automove! cy)
   cy)
 
+(defn set-entity-meta [cy entity-id meta]
+  (.data (.getElementById cy entity-id)
+         (clj->js meta))
+  cy)
+
 (defn node-to-cytoscape-node
   "Transforms node-id into a hash with additional data for use in Cytoscape,
   with optional additional metadata passed in the second parameter"
@@ -69,6 +74,10 @@
                     :edge-type pred
                     }}))
 
+(defn edge-id
+  ([src tgt]
+   (str src "->" tgt)))
+
 (defn triple-to-cytoscape-node
   "Transforms a triple of [node-id rel-id node-id] into a single Cytoscape
   element representing just that edge (i.e. not including the nodes)"
@@ -76,18 +85,14 @@
   (identity {:group "nodes"
              :classes ["predicate"]
              :data {
-                    :id (hash [subj pred])
+                    :id (edge-id subj pred)
                     :label pred
-                    :pred-type pred
+                    :predicate pred
                     :shape "ellipse"
                     :width (* 12 (count pred))
                     :height 20
                     :weight 1
                     }}))
-
-(defn edge-id
-  ([src tgt]
-   (hash [:edge src tgt])))
 
 (defn make-cytoscape-edge
   ([src tgt] (make-cytoscape-edge src tgt :default))
@@ -117,19 +122,6 @@
      obj-ele]
     ))
 
-;;(let [layout-params {
-              ;;                  :name name
-            ;;                    :animate true
-            ;;                    :refresh 20
-            ;;                    }]
-            ;; (set! layout-name name)
-            ;; (disable-automove! cy)
-            ;; (.run (.layout
-            ;;        (.elements cy)
-            ;;        (clj->js layout-params)))
-            ;; (enable-automove! cy)
-            ;; cy)
-
 (defn add-triple! [cy triple]
   (let [eles (triple-to-cytoscape-elements triple)
         jseles (.add cy (clj->js eles))]
@@ -153,7 +145,7 @@
   remaining."
 
   ([cy [subj pred obj]]
-   (let [pred-node-id (hash [subj pred])
+   (let [pred-node-id (edge-id subj pred)
          pred-node (get-element cy pred-node-id)
          link-2-id (edge-id pred-node-id obj)
          link-2    (get-element cy link-2-id)]
@@ -189,12 +181,10 @@
 (defn remove-node!
   "Remove a node from the Cytoscape graph"
   ([cy node]
-   (let [ele (.getElementById cy node)]
-     (if-not (empty? ele)
-       (do
-         (.remove cy ele)
-         true)
-       false))))
+   (let [ele (get-element cy node)]
+     (when-not (empty? ele)
+       (.remove cy ele)))
+   cy))
 
 (defn update-cytoscape! [cy graph]
   (let [cy-graph (graph-to-cytoscape graph)

@@ -58,6 +58,23 @@ form.grid label {
 
 #sidebar {
   grid-area: sidebar;
+  padding: 2px;
+}
+
+.entity-meta-box {
+  margin: 2px;
+  padding: 2px;
+  border: 1px solid gray;
+}
+.entity-meta-box .meta-row {
+  display: flex;
+  border-bottom: 1px dashed black;
+}
+.entity-meta-box .meta-row label {
+  flex: 1;
+}
+.entity-meta-box .meta-row span {
+  flex: 3;
 }
 
 .triple-container {
