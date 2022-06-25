@@ -43,9 +43,9 @@
        [:button {:on-click (fn [e]
                              (.preventDefault e)
                              (rf/dispatch [:relayout-graph]))}
-        "Re-layout"]
+        "Run Layout"]
        [:label {:for :auto-relayout} "Auto Re-layout"]
-       [:input {:field :checkbox :id :auto-relayout :checked true}]]]
+       [:input {:field :checkbox :id :auto-relayout :checked false}]]]
      reagent-forms-events]))
 
 (defn entity [id]

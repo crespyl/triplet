@@ -1,97 +1,21 @@
-(ns app.renderer.cytoscape
+(ns app.renderer.cytoscape.core
   (:require
    [clojure.string :as string]
+   [re-frame.core :as rf]
    ["cytoscape" :as cytoscape]
    ["cytoscape-cola" :as cola]
    ["cytoscape-fcose" :as fcose]
    ["cytoscape-cose-bilkent" :as cose-bilkent]
-   ["cytoscape-automove" :as automove]))
+   ["cytoscape-automove" :as automove]
+   [app.renderer.cytoscape.events :as events]
+   [app.renderer.cytoscape.style :as style]))
+
+(defn setup-events! [cy]
+  (events/setup-default-events cy))
 
 (defn make-cytoscape-config [element]
-  {
-   :container element
-   :style [
-           {
-            :selector "node"
-            :style {
-                    :label (fn [ele] ;"data(id)"
-                             (let [id (.data ele "id")
-                                   label (.data ele "label")]
-                               (or label id)))
-                    :text-valign "center"
-                    :color "#000000"
-                    :background-color "#bfffbf"
-                    :shape (fn [ele]
-                             (let [shape (.data ele "shape")]
-                               (or shape "circle")))
-                    :width (fn [ele]
-                             (let [width (.data ele "width")]
-                               (or width 50)))
-                    :height (fn [ele]
-                              (let [height (.data ele "height")]
-                                (or height 50)))
-                    :z-index 100
-                    }}
-           {:selector "node:selected"
-            :style {
-                    :background-color "#8bff78"
-                    :border-color "green"
-                    :border-width 2
-                    :border-style "dashed"}}
-           {:selector "node:locked"
-            :style {
-                    :border-color "black"
-                    :border-width 2}}
-           {:selector "node.predicate"
-            :style {
-                    :border-width 0
-                    :background-opacity 0
-                    :shape "ellipse"
-                    :z-index 1}}
-           {:selector "node.predicate:selected"
-            :style {
-                    :border-width 1
-                    :border-color "#aaaaaa"}}
-           {:selector "node.predicate:locked"
-            :style {
-                    :border-color "#555555"
-                    :border-width 1
-                    }}
-           {:selector "edge"
-            :style {
-                    :width 2
-                    :line-color "black"
-                    :opacity "0.5"
-                    ;:label "data(label)"
-                    :curve-style "straight"
-                    ;:mid-target-arrow-shape "triangle"
-                    ;:mid-target-arrow-color "#000000"
-                    :transition-property "line-color opacity width"
-                    :transition-duration "1s"
-                    }}
-           {:selector "edge.inbound"
-            :style {
-                    :target-arrow-shape "triangle"
-                    :target-arrow-color "#000000"}}
-           {:selector "edge[label]"
-            :style {
-                    :label "data(label)"
-                    :text-rotation "autorotate"
-                    :text-margin-x "0px"
-                    :text-margin-y "10px"
-                    :text-valign "top"
-                    :text-halign "center"}}
-           {:selector "edge.flash"
-            :style {:line-color "red"}}
-           {:selector "edge.flash-new"
-            :style {:line-color "limegreen"
-                    :width 4
-                    :opacity 1
-                    :transition-property "line-color opacity width"
-                    :transition-duration "1s"}}
-           ]
-   }
-  )
+  {:container element
+   :style (style/default-style)})
 
 (defn enable-automove! [cy]
   (.automove cy (clj->js {
@@ -210,8 +134,7 @@
   (let [eles (triple-to-cytoscape-elements triple)
         jseles (.add cy (clj->js eles))]
     (let [params (clj->js { :name "cose" :animate true :refresh 20 })]
-      (js/console.log (.neighborhood jseles))
-      (tap> [:relayout params eles])
+      ;(tap> [:relayout params eles])
       ;(.run (.layout (.neighborhood jseles) params))
       (.flashClass jseles "flash-new" 2000))
     cy))
@@ -280,22 +203,6 @@
     (.add cy nodes)
     (.add cy edges)
     ))
-
-(defn setup-lock-toggle! [cy]
-  (.on cy "dblclick" "node" (fn [evt]
-                              (let [node (.-target evt)]
-                                (if (.locked node)
-                                  (.unlock node)
-                                  (.lock node))))))
-
-(defn clear-event-handlers! [cy]
-  (.off cy "tap"))
-
-(defn automove-drag-set
-  "Get the set of node ids that should be dragged along when the given node is
-  moved by the user"
-  [cy id]
-  (map #(.id %) (.outgoers (.getElementById cy id) "node")))
 
 (defn register-extensions! [_]
   (.use cytoscape (clj->js cola))

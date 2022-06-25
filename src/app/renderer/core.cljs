@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as string]
    [app.renderer.components :as ui]
-   [app.renderer.cytoscape :as cy]
+   [app.renderer.cytoscape.core :as cy]
    [app.renderer.loader :as loader]
    ;[app.renderer.sketch :as sketch]
    [day8.re-frame.tracing :refer-macros [fn-traced]]
@@ -20,6 +20,8 @@
                    {:graph {:triple-set   (sorted-set)
                             :entity-ids   (sorted-set)
                             :relation-ids (sorted-set)}
+                    :entity-meta {}
+                    :selection (sorted-set)
                     :cytoscape nil
                     :automove-predicate-nodes true
                     :inputs {}}))
@@ -39,11 +41,12 @@
                                     (tap>  [:init])
                                     (cy/register-extensions! cytoscape)
                                     (cy/enable-automove! cytoscape)
-                                    (cy/setup-lock-toggle! cytoscape))
+                                    (cy/setup-events! cytoscape))
                                   (do
                                     (tap> [:remount])
                                     (cy/remount cytoscape container)))
                                 (assoc-in db [:cytoscape] cytoscape))))
+
   (rf/reg-event-db :set-automove-predicate-nodes
                    (fn-traced [db [_ enable-automove?]]
                               (if enable-automove?
@@ -53,6 +56,23 @@
                                 (-> db
                                     (update-in [:cytoscape] #(cy/disable-automove! %))
                                     (assoc-in [:automove-predicate-nodes] false)))))
+
+  (rf/reg-event-db :dblclick-canvas
+                   (fn [db [_ p]]
+                     (tap> [:dblclick p])
+                     db))
+
+  (rf/reg-event-db :select-entity
+                   (fn [db [_ id]]
+                     (update-in db [:selection] #(conj % id))))
+
+  (rf/reg-event-db :deselect-entity
+                   (fn [db [_ id]]
+                     (update-in db [:selection] #(disj % id))))
+
+  (rf/reg-event-db :clear-selection
+                   (fn [db [_ _]]
+                        (assoc-in db [:selection] (sorted-set))))
 
   (rf/reg-event-db :relayout-graph
                    (fn-traced [db [_ l]]
